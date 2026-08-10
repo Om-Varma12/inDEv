@@ -1,16 +1,12 @@
-import Express = require("express");
+import express from "express";
+import messageRoutes from "./routes/message.routes.js";
 
-const app = Express();
+const app = express();
 
-app.use(Express.json());
+app.use(express.json());
 
-app.get("/", (req, res) => {
-    res.json({
-        message: "backend is running!!!"
-    })
-})
+app.use("/msg", messageRoutes);
 
-const PORT = 8000
-app.listen(PORT, () => {
-    console.log(`server is running at ${PORT}`)
-})
+app.listen(5000, () => {
+    console.log("Server running on port 5000");
+});
