@@ -1,16 +1,8 @@
-import express from "express";
-// import { sendMessage } from "../controllers/message.controller.js";
+import { Router } from "express";
+import { sendMessage } from "../controllers/chat.controller.js";
 
-const router = express.Router();
+const router = Router();
 
-router.post("/", (req, res) => {
-    const { message } = req.body;
-
-    console.log("User: ", message)
-
-    res.json({
-        msg: 'received'
-    })
-});
+router.post("/", sendMessage);
 
 export default router;
