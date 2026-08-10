@@ -1,12 +1,14 @@
 import type { Request, Response } from "express";
+import { processUserMessage } from "../services/chat.service.js";
 
-export const sendMessage = (req: Request, res: Response) => {
+
+export const sendMessage = async (req: Request, res: Response) => {
     const { message } = req.body;
 
-    console.log("User:", message);
+    const projectStructure = await processUserMessage(message);
 
     res.json({
         success: true,
-        message: "Message received"
+        message: projectStructure
     });
 };
