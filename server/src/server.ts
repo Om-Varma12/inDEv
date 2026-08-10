@@ -1,12 +1,14 @@
 import express from "express";
-import messageRoutes from "./routes/message.routes.js";
+import chatRoutes from "./routes/chat.routes.js";
 
 const app = express();
 
 app.use(express.json());
 
-app.use("/msg", messageRoutes);
+app.use("/api/chat", chatRoutes);
 
-app.listen(5000, () => {
-    console.log("Server running on port 5000");
+const PORT = 5000;
+
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
 });
