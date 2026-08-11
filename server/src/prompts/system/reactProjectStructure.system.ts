@@ -90,7 +90,7 @@ Return ONLY valid JSON. No markdown fences, no prose, no explanations, no commen
       "path": "src/components/Button/index.ts",
       "type": "file",
       "action": "create",
-      "description": "Barrel file for the Button directory. Re-exports the named Button component from Button.tsx so consumers can import it as `from '@/components/Button'` instead of reaching into the internal file path.",
+      "description": "Barrel file for the Button directory. Re-exports the named Button component from Button.tsx so consumers can import it as 'from '@/components/Button' instead of reaching into the internal file path.",
       "exports": [
         { "name": "Button", "type": "named", "reExportFrom": "./Button" }
       ],
