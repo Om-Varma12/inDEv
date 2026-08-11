@@ -1,7 +1,10 @@
 import ollama from "ollama";
 
 export const run = async (
-    messages: []
+    messages: {
+        role: string
+        content: string
+    }[]
 ) => {
     console.log("started Ollama call");
 
