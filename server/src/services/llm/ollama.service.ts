@@ -1,6 +1,8 @@
 import ollama from "ollama"
 import { reactProjectStructureSystemPrompt } from "../../prompts/system/reactProjectStructure.system.js"
 import { reactTemplate } from "../../prompts/templates/react.template.js"
+import type { ProjectStructure } from "../../types/project.types.js"
+
 
 export const generateProjectStructure = async (userQuery: string) => {
     console.log("started call")
@@ -22,7 +24,12 @@ export const generateProjectStructure = async (userQuery: string) => {
             }
         ]
     })
-
     console.log("call ended")
-    return response.message.content;
+
+    console.log("parsing")
+    const content = response.message.content
+    const projectStructure: ProjectStructure = JSON.parse(content) 
+    console.log("parsing done")
+
+    return projectStructure
 }
