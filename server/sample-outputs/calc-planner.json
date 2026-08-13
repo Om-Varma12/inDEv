@@ -1,0 +1,391 @@
+{
+    "success": true,
+    "message": {
+        "structure": [
+            {
+                "path": "src/components",
+                "type": "folder",
+                "action": "create",
+                "description": "Top-level directory for all UI components. Houses both feature-scoped components (under src/components/<feature>/) and shared, reusable primitives (under src/components/common/). Each component lives in its own subdirectory colocated with its .types.ts, .module.css, and index.ts barrel file so the directory is self-contained and easy to navigate."
+            },
+            {
+                "path": "src/components/common",
+                "type": "folder",
+                "action": "create",
+                "description": "Directory for design-system primitives — small, generic, reusable visual building blocks (Button, Display) that are not tied to any single feature. These components own no feature state and accept their data via props so they can be dropped into any screen without modification. Feature-specific components must NOT live here."
+            },
+            {
+                "path": "src/components/common/Button",
+                "type": "folder",
+                "action": "create",
+                "description": "Directory for the Button primitive and its co-located type definitions, styles, and barrel. Self-contained: consumers only need to import from the directory root to use the component."
+            },
+            {
+                "path": "src/components/common/Button/Button.types.ts",
+                "type": "file",
+                "action": "create",
+                "description": "Type definitions for the Button component. Exports the ButtonVariant union type ('number' | 'operator' | 'action' | 'equals') which drives visual variant selection via the data-variant attribute, and the ButtonProps interface with required label (string — the visible glyph or text), onClick (() => void — fired on click and on Enter/Space activation), variant (ButtonVariant), and optional span (1 | 2 — when 2, the button spans two grid columns, used for the '0' key), and ariaLabel (string — overrides the screen-reader announcement; falls back to label when not provided). Consumed by Button.tsx for prop typing and by any feature that needs to compose a typed calculator key.",
+                "exports": [
+                    {
+                        "name": "ButtonVariant",
+                        "type": "named"
+                    },
+                    {
+                        "name": "ButtonProps",
+                        "type": "named"
+                    }
+                ],
+                "imports": []
+            },
+            {
+                "path": "src/components/common/Button/Button.tsx",
+                "type": "file",
+                "action": "create",
+                "description": "Reusable, accessible button primitive used as the basis for every calculator key. Renders a <button type='button'> whose visual treatment is driven by the variant prop via a data-variant attribute (consumed by Button.module.css attribute selectors). The optional span prop is forwarded to a data-span attribute so the CSS rule [data-span='2'] can apply grid-column: span 2. The aria-label is derived from the explicit ariaLabel prop when provided, falling back to the label, so screen readers announce intent (e.g. 'Divide') rather than the raw glyph (e.g. '÷'). Stateless — all behavior comes from the onClick prop. Keyboard activation, focus rings, hover, and active states are handled entirely in the stylesheet.",
+                "exports": [
+                    {
+                        "name": "Button",
+                        "type": "named"
+                    }
+                ],
+                "imports": [
+                    {
+                        "source": "./Button.types",
+                        "type": "named",
+                        "names": [
+                            "ButtonProps"
+                        ]
+                    },
+                    {
+                        "source": "./Button.module.css",
+                        "type": "default",
+                        "names": [
+                            "styles"
+                        ]
+                    }
+                ]
+            },
+            {
+                "path": "src/components/common/Button/Button.module.css",
+                "type": "file",
+                "action": "create",
+                "description": "Stylesheet for the Button primitive. Defines the base .button rules: 64px height (via the --button-size token), 12px corner radius (via the --button-radius token), 20px font, sans typography, 8% scale-down on :active for press feedback, smooth 150ms transitions on background-color and box-shadow, an accent-colored :focus-visible outline for keyboard users, and a disabled state with reduced opacity. Variant styling is applied via attribute selectors: [data-variant='number'] uses a neutral code-bg, [data-variant='operator'] uses accent-bg with accent-colored text, [data-variant='action'] uses a transparent surface with a subtle border (for AC / ± / %), and [data-variant='equals'] uses a solid accent fill for the primary action. The [data-span='2'] selector sets grid-column: span 2 so the wide '0' key visually fills two grid columns. Pulls all colors from the index.css custom properties so light and dark themes are inherited automatically.",
+                "exports": [],
+                "imports": []
+            },
+            {
+                "path": "src/components/common/Button/index.ts",
+                "type": "file",
+                "action": "create",
+                "description": "Barrel file for the Button directory. Re-exports the named Button component from ./Button so consumers can import it from the directory root (e.g. `import { Button } from '@/components/common/Button'`) without reaching into the internal implementation file. Serves as the single public API surface for the Button module — if additional subcomponents are added later (e.g. IconButton), they would be re-exported here too.",
+                "exports": [
+                    {
+                        "name": "Button",
+                        "type": "named",
+                        "reExportFrom": "./Button"
+                    }
+                ],
+                "imports": []
+            },
+            {
+                "path": "src/components/common/Display",
+                "type": "folder",
+                "action": "create",
+                "description": "Directory for the Display primitive and its co-located type definitions, styles, and barrel. Self-contained: consumers only need to import from the directory root to use the component."
+            },
+            {
+                "path": "src/components/common/Display/Display.types.ts",
+                "type": "file",
+                "action": "create",
+                "description": "Type definitions for the Display component. Imports the Operation type from utils/calculator and exports the DisplayProps interface: currentOperand (string — the value being typed or the most recent result, formatted for display by the component), previousOperand (string | null — the left-hand operand of a pending operation), and operation (Operation | null — the pending operation symbol shown above the current value, e.g. '+', '−', '×', '÷'). Consumed by Display.tsx for prop typing.",
+                "exports": [
+                    {
+                        "name": "DisplayProps",
+                        "type": "named"
+                    }
+                ],
+                "imports": [
+                    {
+                        "source": "../../utils/calculator",
+                        "type": "named",
+                        "names": [
+                            "Operation"
+                        ]
+                    }
+                ]
+            },
+            {
+                "path": "src/components/common/Display/Display.tsx",
+                "type": "file",
+                "action": "create",
+                "description": "Presentational component that renders the calculator's read-out area. Shows the previous operand and the pending operation symbol on a small upper line (e.g. '12 +') and the current operand (passed through formatOperand for thousands-separator formatting) on a large lower line. The wrapper carries role='status' and aria-live='polite' so assistive technology announces new values as they appear without stealing focus. The component is purely driven by props — no internal state — so its visual output is fully deterministic and easy to reason about. Consumed by components/calculator/Calculator.tsx.",
+                "exports": [
+                    {
+                        "name": "Display",
+                        "type": "named"
+                    }
+                ],
+                "imports": [
+                    {
+                        "source": "../../utils/calculator",
+                        "type": "named",
+                        "names": [
+                            "formatOperand"
+                        ]
+                    },
+                    {
+                        "source": "./Display.types",
+                        "type": "named",
+                        "names": [
+                            "DisplayProps"
+                        ]
+                    },
+                    {
+                        "source": "./Display.module.css",
+                        "type": "default",
+                        "names": [
+                            "styles"
+                        ]
+                    }
+                ]
+            },
+            {
+                "path": "src/components/common/Display/Display.module.css",
+                "type": "file",
+                "action": "create",
+                "description": "Stylesheet for the Display component. The .display container uses a subtle code-bg surface, generous padding, 12px corner radius (--radius-md), flex column layout with right-aligned text, and a min-height of 100px (--display-min-height) so the layout does not jump as numbers grow or shrink. The .previous line is 16px, muted (text color), and reserves its own min-height so its visual absence does not collapse the layout when no operation is pending. The .current line is 40px, high-contrast (text-h color), uses the mono font for numeric stability, applies word-break: break-all so very long numbers wrap rather than overflow, and uses letter-spacing for legibility. All colors come from index.css custom properties so light and dark themes are inherited automatically.",
+                "exports": [],
+                "imports": []
+            },
+            {
+                "path": "src/components/common/Display/index.ts",
+                "type": "file",
+                "action": "create",
+                "description": "Barrel file for the Display directory. Re-exports the named Display component from ./Display so consumers can import it from the directory root. Serves as the single public API surface for the Display module.",
+                "exports": [
+                    {
+                        "name": "Display",
+                        "type": "named",
+                        "reExportFrom": "./Display"
+                    }
+                ],
+                "imports": []
+            },
+            {
+                "path": "src/components/calculator",
+                "type": "folder",
+                "action": "create",
+                "description": "Directory for the calculator feature. Houses the top-level Calculator feature component, its feature-scoped stylesheet, and its barrel. Unlike components/common/, this directory is feature-specific: a second feature added later (e.g. a 'history' panel) would get its own sibling directory, not live here. Keeps the entire calculator self-contained so it can be lifted into another app or removed cleanly."
+            },
+            {
+                "path": "src/components/calculator/Calculator.tsx",
+                "type": "file",
+                "action": "create",
+                "description": "Top-level feature component for the calculator. Calls useCalculator to obtain the live state and a stable set of action handlers, then composes the UI in a single declarative JSX tree: a <Display> for the read-out followed by a 4-column CSS Grid keypad containing 19 <Button>s — three action keys (AC, ±, %), four operator keys (÷, ×, −, +), the digit keys 0–9 with the '0' key spanning two columns via span={2}, a decimal point, and a primary equals key. Each button's onClick is wired to the appropriate hook handler. The component is stateless beyond the hook; the keypad grid and card chrome are defined in Calculator.module.css. Rendered exactly once by App.tsx as the entire app body. Uses ariaLabel on the symbol-only keys (operators, equals, action glyphs) so screen readers announce intent rather than the raw glyph.",
+                "exports": [
+                    {
+                        "name": "Calculator",
+                        "type": "named"
+                    }
+                ],
+                "imports": [
+                    {
+                        "source": "../common/Button",
+                        "type": "named",
+                        "names": [
+                            "Button"
+                        ]
+                    },
+                    {
+                        "source": "../common/Display",
+                        "type": "named",
+                        "names": [
+                            "Display"
+                        ]
+                    },
+                    {
+                        "source": "../../hooks/useCalculator",
+                        "type": "named",
+                        "names": [
+                            "useCalculator"
+                        ]
+                    },
+                    {
+                        "source": "./Calculator.module.css",
+                        "type": "default",
+                        "names": [
+                            "styles"
+                        ]
+                    }
+                ]
+            },
+            {
+                "path": "src/components/calculator/Calculator.module.css",
+                "type": "file",
+                "action": "create",
+                "description": "Stylesheet for the Calculator feature component. The .calculator wrapper applies the card surface — max-width 360px (shrinks to 100% on small screens), 1px border using --border, 16px corner radius using --radius-lg, a layered shadow using --shadow, 20px internal padding, and a vertical flex gap of 16px (--space-md) so the display and keypad are visually grouped. The .keypad uses display: grid with grid-template-columns: repeat(4, 1fr) and a 12px gap (--keypad-gap) to lay out the keys in a clean 4-column arrangement; the '0' key visually spans two columns thanks to the data-span='2' rule defined in Button.module.css. Responsive: at narrow viewports the wrapper width becomes 100% and padding shrinks, keeping the keypad usable on phones without horizontal scrolling. All colors and radii come from the design tokens so the calculator inherits light/dark mode automatically.",
+                "exports": [],
+                "imports": []
+            },
+            {
+                "path": "src/components/calculator/index.ts",
+                "type": "file",
+                "action": "create",
+                "description": "Barrel file for the calculator feature directory. Re-exports the named Calculator component from ./Calculator so the App component (and any future routes or tests) can import it from the directory root. Serves as the single public API surface for the calculator feature.",
+                "exports": [
+                    {
+                        "name": "Calculator",
+                        "type": "named",
+                        "reExportFrom": "./Calculator"
+                    }
+                ],
+                "imports": []
+            },
+            {
+                "path": "src/hooks",
+                "type": "folder",
+                "action": "create",
+                "description": "Directory for custom React hooks. Each file in this directory exports one or more hooks that encapsulate stateful behavior (useReducer, useEffect, useCallback compositions) so feature components can stay declarative. Hooks colocate their public types where it makes the API ergonomic. Files here may import from utils/ and types/ but should not import from components/ — that would invert the dependency direction."
+            },
+            {
+                "path": "src/hooks/useCalculator.ts",
+                "type": "file",
+                "action": "create",
+                "description": "Custom hook that owns all calculator state and exposes a stable action API. Internally uses useReducer with a reducer handling seven action types (ADD_DIGIT, CHOOSE_OPERATION, CLEAR, DELETE_DIGIT, EVALUATE, TOGGLE_SIGN, PERCENTAGE) over a CalculatorState shape containing currentOperand (string), previousOperand (string | null), operation (Operation | null), and overwrite (boolean). The reducer caps input at 12 significant digits, prevents multiple decimal points, returns the 'Error' sentinel on division by zero, and chains pending operations correctly (e.g. entering 1 + 2 + 3 evaluates 1+2 as soon as the second operator is chosen so the running total is correct). The hook also installs a single window keydown listener that maps keyboard input — digits 0–9, '.', '+', '-', '*', '/', Enter/=, Backspace/Delete, Escape/C, '%', and '_'/S — to the corresponding actions, with meta/ctrl/alt-key chords ignored so browser shortcuts (Cmd+R, Ctrl+L, etc.) still work. Returns the live state plus memoized handlers (inputDigit, chooseOperation, evaluate, clear, deleteDigit, toggleSign, percentage). Also exports the CalculatorState and CalculatorAction types as part of the public API. Consumed by components/calculator/Calculator.tsx.",
+                "exports": [
+                    {
+                        "name": "CalculatorState",
+                        "type": "named"
+                    },
+                    {
+                        "name": "CalculatorAction",
+                        "type": "named"
+                    },
+                    {
+                        "name": "useCalculator",
+                        "type": "named"
+                    }
+                ],
+                "imports": [
+                    {
+                        "source": "react",
+                        "type": "named",
+                        "names": [
+                            "useCallback",
+                            "useEffect",
+                            "useReducer"
+                        ]
+                    },
+                    {
+                        "source": "../utils/calculator",
+                        "type": "named",
+                        "names": [
+                            "calculate",
+                            "formatOperand",
+                            "Operation"
+                        ]
+                    }
+                ]
+            },
+            {
+                "path": "src/utils",
+                "type": "folder",
+                "action": "create",
+                "description": "Directory for pure, framework-agnostic utility functions and their associated types. Files here must contain no React, JSX, or DOM dependencies, making them trivially unit-testable in isolation. Consumed by both hooks/ (for state-transition logic) and components/ (for reusable helpers) when logic needs to be shared outside a single component."
+            },
+            {
+                "path": "src/utils/calculator.ts",
+                "type": "file",
+                "action": "create",
+                "description": "Pure calculation and formatting logic for the calculator, fully decoupled from React. Exports the Operation type (a four-member string union: '+' | '-' | '×' | '÷'), the four single-operation helpers add/subtract/multiply/divide (each taking two numbers and returning a number; divide returns NaN for division by zero so the caller can detect it via Number.isFinite), the higher-order calculate(a, b, op) dispatcher (an exhaustive switch over Operation that delegates to the appropriate helper), and formatOperand(value: string) which formats a numeric string for display using Intl.NumberFormat (en-US, thousands separator) while preserving a trailing decimal point and any fractional digits, and returning the 'Error' sentinel untouched. Consumed by hooks/useCalculator.ts (for state transitions and post-evaluate formatting) and components/common/Display/Display.tsx (for rendering the current value with proper thousands separators).",
+                "exports": [
+                    {
+                        "name": "Operation",
+                        "type": "named"
+                    },
+                    {
+                        "name": "add",
+                        "type": "named"
+                    },
+                    {
+                        "name": "subtract",
+                        "type": "named"
+                    },
+                    {
+                        "name": "multiply",
+                        "type": "named"
+                    },
+                    {
+                        "name": "divide",
+                        "type": "named"
+                    },
+                    {
+                        "name": "calculate",
+                        "type": "named"
+                    },
+                    {
+                        "name": "formatOperand",
+                        "type": "named"
+                    }
+                ],
+                "imports": []
+            },
+            {
+                "path": "src/styles",
+                "type": "folder",
+                "action": "create",
+                "description": "Directory for global stylesheets. Holds CSS files that define design tokens (CSS custom properties) and any global resets or base styles that are not tied to a single component. Imported once from main.tsx so the tokens are registered before any component renders. Component-level styles live in *.module.css files colocated with their components, not here."
+            },
+            {
+                "path": "src/styles/tokens.css",
+                "type": "file",
+                "action": "create",
+                "description": "Global design-tokens stylesheet. Defines :root CSS custom properties that extend the color, typography, and radius tokens already in index.css: a spacing scale (--space-xs 4px, --space-sm 8px, --space-md 16px, --space-lg 24px, --space-xl 32px), a border-radius scale (--radius-sm 6px, --radius-md 12px, --radius-lg 16px), calculator-specific sizing tokens (--button-size 64px key height, --button-radius 12px, --keypad-gap 12px, --display-min-height 100px), and semantic feedback colors (--error, --success, --warning) with matching dark-mode overrides under @media (prefers-color-scheme: dark). Imported once from src/main.tsx so every component can reference the same token names without duplicating values. The single source of truth for the app's visual language.",
+                "exports": [],
+                "imports": []
+            }
+        ],
+        "modifiedFiles": [
+            {
+                "path": "src/main.tsx",
+                "action": "modify",
+                "description": "Original entry point. Modified to additionally import './styles/tokens.css' immediately after the existing './index.css' import so the design-tokens custom properties are registered globally before any component renders. The existing React tree — <StrictMode> wrapping <App /> — is left completely unchanged; no providers, no rewiring, just a single extra side-effect import line.",
+                "addedImports": [
+                    {
+                        "source": "./styles/tokens.css",
+                        "type": "default",
+                        "names": []
+                    }
+                ],
+                "reason": "Design tokens must be loaded before the calculator component mounts so its CSS Modules can reference --space-*, --radius-*, --button-size, etc. without undefined-variable flashes."
+            },
+            {
+                "path": "src/App.tsx",
+                "action": "modify",
+                "description": "Root application component. The Vite-template content (the useState counter, the three-logo hero, the tick marks, the get-started copy) is replaced with a minimal page wrapper: a <main className='app'> that renders the new <Calculator /> feature component as its sole child. The existing import of './App.css' is retained so the .app page-container rule added in the App.css modification takes effect. The new import is a named import of { Calculator } from './components/calculator' (resolves to the index.ts barrel). Exports the App component as default, unchanged.",
+                "addedImports": [
+                    {
+                        "source": "./components/calculator",
+                        "type": "named",
+                        "names": [
+                            "Calculator"
+                        ]
+                    }
+                ],
+                "reason": "App.tsx is now the page-level host for the new calculator feature; the original Vite starter markup is removed entirely."
+            },
+            {
+                "path": "src/App.css",
+                "action": "modify",
+                "description": "Original stylesheet containing Vite-template rules (.counter, .hero, #center, .ticks). Modified by removing the now-unused template rules and replacing them with a single .app page-container rule: display: flex, align-items: center, justify-content: center, min-height: 100vh, width: 100%, padding: 24px, and box-sizing: border-box. This centers the calculator card on the viewport and provides breathing room on small screens. Color, typography, and dark-mode behavior continue to come from the global index.css and the new src/styles/tokens.css — App.css adds only layout, not color.",
+                "addedImports": [],
+                "reason": "The .app wrapper class is required so the calculator card is centered vertically and horizontally on the page; the original template rules are removed because they styled markup that no longer exists in App.tsx."
+            }
+        ],
+        "missingDependencies": [],
+        "notes": [
+            "tsconfig.app.json defines no 'paths' mapping, so all new files use direct relative imports. If a future feature wants '@/' aliases, vite.config.ts (resolve.alias) and tsconfig.app.json (compilerOptions.paths) must be updated together.",
+            "Vite template assets (src/assets/react.svg, src/assets/vite.svg, src/assets/hero.png) are left on disk and become unreferenced after the App.tsx replacement; they are safe to delete manually if desired but do not affect the build."
+        ]
+    }
+}
