@@ -3,7 +3,7 @@ import { processUserMessage } from "../services/chat.service.js";
 
 
 export const sendMessage = async (req: Request, res: Response) => {
-    const { message } = req.body;
+    const { message, isFirstMsg} = req.body;
 
     const projectStructure = await processUserMessage(message);
 
