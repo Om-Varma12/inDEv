@@ -1,6 +1,9 @@
 import Groq from "groq-sdk";
-import type { LLMMessage } from "../../types/llm.types.js";
+import type { LLMMessage, LLMResponse } from "../../types/llm.types.js";
 import "dotenv/config";
+
+import { parseRobustJSON } from "../code/jsonParser.service.js";
+import { llmParse } from "./llmJsonParser.service.js";
 
 const keys = [
     process.env.GROQ_API_KEY_1,
@@ -22,7 +25,8 @@ const getNextKey = () => {
 
 export const run = async (
     messages: LLMMessage[]
-) => {
+): Promise<LLMResponse> => {
+ 
     const apiKey = getNextKey();
 
     const groq = new Groq({
@@ -31,14 +35,23 @@ export const run = async (
 
     const response = await groq.chat.completions.create({
         messages,
-        model: "qwen/qwen3.6-27b",
+        model: String(process.env.MODEL),
     });
 
     const content = response.choices[0]?.message?.content || "";
 
-    return content
-        .replace(/<think>[\s\S]*?<\/think>/g, "")
-        .replace(/^```(?:tsx|typescript|ts|jsx|javascript|js)?\s*/i, "")
-        .replace(/\s*```$/i, "")
-        .trim();
+    let result: unknown;
+
+    try{
+        result = parseRobustJSON(content);
+    } 
+    catch{
+        result = await llmParse(content);
+    }
+
+    if( typeof result !== "object" || result === null || !("code" in result) || typeof result.code !== "string"){
+        throw new Error("Invalid LLM response: expected { code: string }");
+    }
+
+    return result as LLMResponse;
 };

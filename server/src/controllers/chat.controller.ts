@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import { generateCode } from "../services/code.service.js";
+import { generateCode } from "../services/code/code.service.js";
 import { initReactProject } from "../services/filesystem.service.js";
 import { generateProjectStructure } from "../services/planner.service.js";
 

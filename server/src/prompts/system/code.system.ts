@@ -67,13 +67,50 @@ Always read all provided context before writing code — the 'description' field
 
 ## Output Format — STRICT
 
-Return ONLY the raw source code for the file. Nothing else.
+Return ONLY a single valid JSON object with exactly one key, shaped like this:
 
-- No JSON wrapper, no markdown code fences (no ' ''' '), no filename header, no preamble like "Here's the code:", no explanation, no summary after the code.
-- The very first character of your response must be the first character of the actual file content (e.g. 'export', 'import', 'interface', '.class {', etc.).
-- The very last character of your response must be the last character of the actual file content — no trailing commentary, no "Let me know if you'd like changes."
-- If you need to flag a genuine substitution or assumption (per Rule 2), the ONLY place that may appear is as an in-file code comment at the very top, using the file's native comment syntax ('//' for TS/TSX, '/* */' for CSS). Never as text outside the code.
-- Output exactly one file's content per response, with real newlines (not escaped '\n'), formatted exactly as it should appear on disk.
+{
+  "code": "<the complete, final file content as a string>"
+}
+
+- No markdown fences around the JSON, no preamble, no explanation, no text before or after the JSON object.
+- The JSON object must contain exactly one key: '"code"'. No other keys (no 'path', no 'issues', no 'notes') — the caller already knows the path from the spec it sent you.
+- '"code"' must be the COMPLETE, final source code for the file — every export, every import, the entire implementation — never a partial snippet.
+
+### JSON STRING ENCODING — READ CAREFULLY, THIS IS WHERE OUTPUT MOST OFTEN BREAKS
+
+The value of '"code"' is a JSON STRING, not raw source code. Every character in it must be valid inside a JSON string literal. Before emitting, mentally re-encode the entire file content as a JSON string:
+
+- **Never emit a literal, physical newline inside the JSON string.** Every line break in the source code becomes the two-character escape sequence '\\n' — not an actual Enter/line-feed byte. If you find yourself pressing "newline" while writing the '"code"' value, write the two characters '\\' and 'n' instead.
+- Every double quote '"' that appears inside the code (JSX attributes, string literals, JSDoc, etc.) must be escaped as '\\"'. Prefer single quotes inside the generated source code specifically because it minimizes escaping — but when a double quote is unavoidable (e.g. JSX conventionally uses double quotes for attributes: 'className="foo"'), it MUST be escaped.
+- Every backslash '\\' that appears in the code (regexes, Windows-style path strings, escape sequences inside template literals) must itself be escaped as '\\\\'.
+- Backticks and template literals ('\\\`...\\\`', '\${...}') are NOT special in JSON — write them as plain characters inside the string, but any double quotes or backslashes nested inside them still follow the rules above.
+- Tabs become '\\t'. Any other control character must use its JSON escape.
+- Do not rely on "it looked fine when I wrote it" — the check is mechanical: if the raw bytes you're about to output contain an actual newline, tab, unescaped '"', or unescaped '\\' anywhere between the opening and closing quotes of the '"code"' value, the output is invalid and will be rejected by the parser. There is no tolerance for this — a single unescaped character fails the entire response.
+- If you are uncertain whether a character needs escaping, escape it defensively rather than risk an invalid literal — over-escaping inside a JSON string (e.g. escaping a character that didn't strictly need it, where valid) is far safer than under-escaping.
+
+### Worked encoding example
+
+Given source code (actual file, multiple lines, one embedded double-quoted string, one backtick template literal):
+
+  import React from 'react';
+
+  export const Greeting = () => {
+    const label = "Hello, \\"world\\"";
+    return <div className="greeting">{\\\`Value: \${label}\\\`}</div>;
+  };
+
+The correct '"code"' value for this is a SINGLE-LINE JSON string where every line break above became '\\n' and the inner double quotes became '\\"':
+
+{
+  "code": "import React from 'react';\\n\\nexport const Greeting = () => {\\n  const label = \\"Hello, \\\\\\"world\\\\\\"\\";\\n  return <div className=\\"greeting\\">{\\\`Value: \${label}\\\`}</div>;\\n};\\n"
+}
+
+Notice: the entire value is one continuous line of text in the JSON payload — there is no point at which you press Enter while typing the string value itself.
+
+- All other characters that require JSON escaping must be properly escaped so the overall output is valid, parseable JSON.
+- If you need to flag a genuine substitution or assumption (per Rule 2), the ONLY place that may appear is as an in-file code comment at the very top of the 'code' string, using the file's native comment syntax ('//' for TS/TSX, '/* */' for CSS). Never as a separate field or as text outside the JSON.
+- The entire response must be valid JSON parseable by 'JSON.parse' with no modification — nothing before the opening '{', nothing after the closing '}', and no raw control characters anywhere in the payload.
 
 ## Self-Check Before Returning Output
 1. Does the generated code export exactly what 'exports' declares (correct names, correct default/named type)?
@@ -82,7 +119,9 @@ Return ONLY the raw source code for the file. Nothing else.
 4. Is the file's code shape correct for its extension (no JSX in '.ts', no logic in barrel files, etc.)?
 5. Is the TypeScript valid and properly typed with no 'any' unless unavoidable?
 6. If 'action' is '"modify"', is all pre-existing unrelated code preserved unchanged?
-7. Is your entire response nothing but the file's code — no markdown fences, no JSON, no explanatory text before or after?
+7. **Scan the exact bytes of the '"code"' string value you are about to emit: is there any literal newline, tab, unescaped '"', or unescaped '\\' between its opening and closing quotes? If yes, fix it before emitting — this is the single most common reason generation is rejected.**
+8. Is the output a single valid JSON object with exactly one key, '"code"', properly escaped, parseable by 'JSON.parse' with no extra text before or after?
+9. If the generated file uses curly braces (CSS, TS/TSX object literals, blocks), count opening '{' and closing '}' — they must be exactly equal. A trailing or stray extra '}' with no matching '{' is a common error; scan the last few lines of the code specifically for this before emitting.
 
 If any check fails, silently correct it before returning. Never return output that fails your own self-check.
 
@@ -101,7 +140,9 @@ If any check fails, silently correct it before returning. Never return output th
 }
 
 **Output (entire response, verbatim):**
-export { Display } from './Display';
+{
+  "code": "export { Display } from './Display';\\n"
+}
 `
 
 
@@ -166,23 +207,30 @@ Fields you'll see in the spec, and how to read them:
 
 ## Output Format — STRICT
 
-Return ONLY the complete, final content of the file after the modification is applied. Nothing else.
+Return ONLY a single valid JSON object with exactly one key, shaped like this:
 
-- No JSON wrapper, no markdown code fences, no filename header, no preamble ("Here's the updated file:"), no explanation, no diff notation, no summary after the code.
-- The very first character of your response must be the first character of the actual updated file content.
-- The very last character of your response must be the last character of the actual updated file content.
-- Return the FULL file — every line that existed before, plus the applied change — never a partial snippet, never just the changed lines, never a diff/patch format.
-- Use real newlines, not escaped '\n'.
-- Any flagged assumption (per Rule 6) may only appear as an in-file code comment at the top of the file — never as text outside the code.
+'''json
+{
+  "code": "<the complete, final file content as a string>"
+}
+'''
+
+- No markdown fences around the JSON, no preamble, no explanation, no text before or after the JSON object.
+- The JSON object must contain exactly one key: '"code"'. No other keys (no 'path', no 'issues', no 'notes') — the caller already knows the path from the spec it sent you.
+- '"code"' must be the COMPLETE, final content of the file after the modification is applied — every line that existed before, plus the applied change — never a partial snippet, never just the changed lines, never a diff/patch format.
+- Line breaks within the code must be represented as literal '\n' escape sequences within the JSON string (standard JSON string escaping), since the code is embedded as a JSON string value, not raw text.
+- All other characters that require JSON escaping (quotes, backslashes, etc.) inside the code must be properly escaped so the overall output is valid, parseable JSON.
+- Any flagged assumption (per Rule 6) may only appear as an in-file code comment at the top of the code string — never as a separate field or as text outside the JSON.
+- The entire response must be valid JSON parseable by 'JSON.parse' with no modification — nothing before the opening '{', nothing after the closing '}'.
 
 ## Self-Check Before Returning Output
-1. Does the output contain every line of the original file that wasn't targeted for change, completely unmodified?
-2. Is the described change (and only the described change) applied?
+1. Does 'code' contain every line of the original file that wasn't targeted for change, completely unmodified?
+2. Is the described change (and only the described change) applied within 'code'?
 3. Is the new addition placed exactly where 'description' specifies (or in the most conventional location if unspecified)?
 4. Are import statement types correct — side-effect-only imports have no binding, named imports use the exact names given, default imports use default syntax?
 5. Is existing code style (quotes, semicolons, indentation) preserved exactly as it was, not normalized to your own preference?
 6. Is nothing added that wasn't explicitly requested (no extra usage, no extra imports, no "helpful" extras)?
-7. Is your entire response nothing but the final file content — no fences, no JSON, no explanatory text before or after?
+7. Is the output a single valid JSON object with exactly one key, '"code"', properly escaped, parseable by 'JSON.parse' with no extra text before or after?
 
 If any check fails, silently correct it before returning. Never return output that fails your own self-check.
 

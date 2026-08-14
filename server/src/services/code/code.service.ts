@@ -1,11 +1,11 @@
-import type { ProjectStructure, StructureItem, ModifiedFile } from "../types/project.types.js";
-import type { LLMMessage } from "../types/llm.types.js";
+import type { ProjectStructure, StructureItem, ModifiedFile } from "../../types/project.types.js";
+import type { LLMMessage, LLMResponse } from "../../types/llm.types.js";
 
-import { codeGenerationPrompt, codeModificationPrompt } from "../prompts/system/code.system.js";
-import { run } from "../services/llm/groq.service.js"
+import { codeGenerationPrompt, codeModificationPrompt } from "../../prompts/system/code.system.js";
+import { run } from "../llm/groq.service.js"
 
 
-import { writeProjectFile, createDirectory, readProjectFile } from "./filesystem.service.js";
+import { writeProjectFile, createDirectory, readProjectFile } from "../filesystem.service.js";
 
 export const generateCode = async(
     plan: ProjectStructure,
@@ -47,9 +47,9 @@ export const generateFile = async(
         }
     ]
 
-    const code = await run(msg)
+    const response = await run(msg)
 
-    return code;
+    return response.code;
 }
 
 
@@ -66,7 +66,7 @@ export const modifyFile = async(
         },
         {
             role: 'system',
-            content: 'These are the initial file content: ' + await readProjectFile(`../../outputs/${projectName}/${file.path}`)
+            content: 'These are the initial file content: ' + await readProjectFile(`${projectName}/${file.path}`)
         },
         {
             role: 'user',
@@ -74,8 +74,8 @@ export const modifyFile = async(
         }
     ]
 
-    const code = await run(msg)
+    const response = await run(msg)
 
-    return code;
+    return response.code;
 
 }
