@@ -1,14 +1,20 @@
 import type { Request, Response } from "express";
-import { processUserMessage } from "../services/chat.service.js";
+import { generateCode } from "../services/code.service.js";
+import { initReactProject } from "../services/filesystem.service.js";
+import { generateProjectStructure } from "../services/planner.service.js";
 
 
 export const sendMessage = async (req: Request, res: Response) => {
-    const { message } = req.body;
+    const { message, isFirstMsg, projectName} = req.body;
+    const projectPath = `../../outputs/${projectName}`;
 
-    const projectStructure = await processUserMessage(message);
+    const projectStructure = await generateProjectStructure(message);
+    await initReactProject(projectPath)
+
+    await generateCode(projectStructure, projectPath);
 
     res.json({
         success: true,
-        message: projectStructure
+        message: 'done with the project'
     });
 };

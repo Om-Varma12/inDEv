@@ -13,10 +13,12 @@ import { promisify } from "node:util";
 const execAsync = promisify(exec);
 
 export const initReactProject = async (path: string) => {
+    console.log("initializing react prj")
     await execAsync(
         `npm create vite@latest "${path}" -- --template react-ts`
     )
-
+    
+    console.log("installing pkgs")
     await execAsync("npm i", {
         cwd: path
     })
