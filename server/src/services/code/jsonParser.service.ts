@@ -22,6 +22,8 @@ export class JSONParseError extends Error {
 }
 
 export function parseRobustJSON<T = unknown>(raw: string): T {
+  console.log("parsing rule based")
+
   if (raw == null) {
     throw new JSONParseError("Input is null/undefined", String(raw), []);
   }

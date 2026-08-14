@@ -1,5 +1,5 @@
 import Groq from "groq-sdk";
-import type { LLMMessage } from "../../types/llm.types.js";
+import type { LLMMessage, LLMResponse } from "../../types/llm.types.js";
 import "dotenv/config";
 
 import { parseRobustJSON } from "../code/jsonParser.service.js";
@@ -25,7 +25,8 @@ const getNextKey = () => {
 
 export const run = async (
     messages: LLMMessage[]
-) => {
+): Promise<LLMResponse> => {
+ 
     const apiKey = getNextKey();
 
     const groq = new Groq({
@@ -39,16 +40,18 @@ export const run = async (
 
     const content = response.choices[0]?.message?.content || "";
 
-    let result: unknown = content;
+    let result: unknown;
 
-    while(typeof result !== "string"){
-        try{
-            result = parseRobustJSON(String(result));
-        } 
-        catch{
-            result = await llmParse(String(result));
-        }
+    try{
+        result = parseRobustJSON(content);
+    } 
+    catch{
+        result = await llmParse(content);
     }
 
-    return result;
+    if( typeof result !== "object" || result === null || !("code" in result) || typeof result.code !== "string"){
+        throw new Error("Invalid LLM response: expected { code: string }");
+    }
+
+    return result as LLMResponse;
 };

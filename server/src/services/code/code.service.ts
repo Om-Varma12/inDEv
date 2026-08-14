@@ -1,5 +1,5 @@
 import type { ProjectStructure, StructureItem, ModifiedFile } from "../../types/project.types.js";
-import type { LLMMessage } from "../../types/llm.types.js";
+import type { LLMMessage, LLMResponse } from "../../types/llm.types.js";
 
 import { codeGenerationPrompt, codeModificationPrompt } from "../../prompts/system/code.system.js";
 import { run } from "../llm/groq.service.js"
@@ -15,7 +15,7 @@ export const generateCode = async(
     for(const item of plan.structure){
         if(item.type == 'file'){
             const code = await generateFile(item);
-            await writeProjectFile(projectName + '/' + item.path, code.code);
+            await writeProjectFile(projectName + '/' + item.path, code);
         }
         else if(item.type == 'folder'){
             await createDirectory(projectName + '/' + item.path);
@@ -24,7 +24,7 @@ export const generateCode = async(
 
     for(const item of plan.modifiedFiles){
         const code = await modifyFile(item, projectName)
-        await writeProjectFile(projectName + '/' + item.path, code.code);
+        await writeProjectFile(projectName + '/' + item.path, code);
     }
 }
 
@@ -47,9 +47,9 @@ export const generateFile = async(
         }
     ]
 
-    const code = await run(msg)
+    const response = await run(msg)
 
-    return code;
+    return response.code;
 }
 
 
@@ -74,8 +74,8 @@ export const modifyFile = async(
         }
     ]
 
-    const code = await run(msg)
+    const response = await run(msg)
 
-    return code;
+    return response.code;
 
 }
