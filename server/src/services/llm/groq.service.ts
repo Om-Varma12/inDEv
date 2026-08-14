@@ -2,6 +2,8 @@ import Groq from "groq-sdk";
 import type { LLMMessage } from "../../types/llm.types.js";
 import "dotenv/config";
 
+import { parseJSON } from "../jsonParser.service.js";
+
 const keys = [
     process.env.GROQ_API_KEY_1,
     process.env.GROQ_API_KEY_2,
@@ -36,9 +38,7 @@ export const run = async (
 
     const content = response.choices[0]?.message?.content || "";
 
-    return content
-        .replace(/<think>[\s\S]*?<\/think>/g, "")
-        .replace(/^```(?:tsx|typescript|ts|jsx|javascript|js)?\s*/i, "")
-        .replace(/\s*```$/i, "")
-        .trim();
+    const parsed = parseJSON(content)
+
+    return parsed;
 };

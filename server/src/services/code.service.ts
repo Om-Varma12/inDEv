@@ -15,7 +15,7 @@ export const generateCode = async(
     for(const item of plan.structure){
         if(item.type == 'file'){
             const code = await generateFile(item);
-            await writeProjectFile(projectName + '/' + item.path, code);
+            await writeProjectFile(projectName + '/' + item.path, code.code);
         }
         else if(item.type == 'folder'){
             await createDirectory(projectName + '/' + item.path);
@@ -24,7 +24,7 @@ export const generateCode = async(
 
     for(const item of plan.modifiedFiles){
         const code = await modifyFile(item, projectName)
-        await writeProjectFile(projectName + '/' + item.path, code);
+        await writeProjectFile(projectName + '/' + item.path, code.code);
     }
 }
 
@@ -66,7 +66,7 @@ export const modifyFile = async(
         },
         {
             role: 'system',
-            content: 'These are the initial file content: ' + await readProjectFile(`../../outputs/${projectName}/${file.path}`)
+            content: 'These are the initial file content: ' + await readProjectFile(`${projectName}/${file.path}`)
         },
         {
             role: 'user',
