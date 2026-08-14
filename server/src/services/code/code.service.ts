@@ -1,11 +1,11 @@
-import type { ProjectStructure, StructureItem, ModifiedFile } from "../types/project.types.js";
-import type { LLMMessage } from "../types/llm.types.js";
+import type { ProjectStructure, StructureItem, ModifiedFile } from "../../types/project.types.js";
+import type { LLMMessage } from "../../types/llm.types.js";
 
-import { codeGenerationPrompt, codeModificationPrompt } from "../prompts/system/code.system.js";
-import { run } from "../services/llm/groq.service.js"
+import { codeGenerationPrompt, codeModificationPrompt } from "../../prompts/system/code.system.js";
+import { run } from "../llm/groq.service.js"
 
 
-import { writeProjectFile, createDirectory, readProjectFile } from "./filesystem.service.js";
+import { writeProjectFile, createDirectory, readProjectFile } from "../filesystem.service.js";
 
 export const generateCode = async(
     plan: ProjectStructure,

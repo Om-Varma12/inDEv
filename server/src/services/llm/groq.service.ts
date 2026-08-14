@@ -2,7 +2,8 @@ import Groq from "groq-sdk";
 import type { LLMMessage } from "../../types/llm.types.js";
 import "dotenv/config";
 
-import { parseJSON } from "../jsonParser.service.js";
+import { parseRobustJSON } from "../code/jsonParser.service.js";
+import { llmParse } from "./llmJsonParser.service.js";
 
 const keys = [
     process.env.GROQ_API_KEY_1,
@@ -33,12 +34,21 @@ export const run = async (
 
     const response = await groq.chat.completions.create({
         messages,
-        model: "qwen/qwen3.6-27b",
+        model: String(process.env.MODEL),
     });
 
     const content = response.choices[0]?.message?.content || "";
 
-    const parsed = parseJSON(content)
+    let result: unknown = content;
 
-    return parsed;
+    while(typeof result !== "string"){
+        try{
+            result = parseRobustJSON(String(result));
+        } 
+        catch{
+            result = await llmParse(String(result));
+        }
+    }
+
+    return result;
 };
