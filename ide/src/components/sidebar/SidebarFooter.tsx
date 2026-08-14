@@ -1,4 +1,3 @@
-import React from 'react';
 import { IconButton } from '../ui';
 
 interface SidebarFooterProps {
@@ -9,13 +8,13 @@ interface SidebarFooterProps {
   className?: string;
 }
 
-export const SidebarFooter: React.FC<SidebarFooterProps> = ({
+export const SidebarFooter = ({
   onUpgradeClick,
   onSettingsClick,
   onDownloadClick,
   onHelpClick,
   className = '',
-}) => {
+}: SidebarFooterProps) => {
   return (
     <div
       className={`
@@ -33,9 +32,9 @@ export const SidebarFooter: React.FC<SidebarFooterProps> = ({
         Upgrade
       </a>
       <div className="flex items-center gap-md">
-        <IconButton icon="settings" onClick={onSettingsClick} />
-        <IconButton icon="download" onClick={onDownloadClick} />
-        <IconButton icon="help" onClick={onHelpClick} />
+        <IconButton icon="settings" onClick={onSettingsClick} size="lg" />
+        <IconButton icon="download" onClick={onDownloadClick} size="lg" />
+        <IconButton icon="help" onClick={onHelpClick} size="lg" />
       </div>
     </div>
   );

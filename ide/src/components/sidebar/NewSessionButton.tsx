@@ -1,14 +1,12 @@
-import React from 'react';
-
 interface NewSessionButtonProps {
   onClick?: () => void;
   className?: string;
 }
 
-export const NewSessionButton: React.FC<NewSessionButtonProps> = ({
+export const NewSessionButton = ({
   onClick,
   className = '',
-}) => {
+}: NewSessionButtonProps) => {
   return (
     <button
       onClick={onClick}

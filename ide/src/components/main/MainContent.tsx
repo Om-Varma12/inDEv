@@ -1,4 +1,3 @@
-import React from 'react';
 import { TopHeader } from './TopHeader';
 import { PageHeader } from './PageHeader';
 import { InputArea } from './InputArea';
@@ -10,11 +9,11 @@ interface MainContentProps {
   onPromptClick?: (prompt: string) => void;
 }
 
-export const MainContent: React.FC<MainContentProps> = ({
+export const MainContent = ({
   className = '',
   onSendMessage,
   onPromptClick,
-}) => {
+}: MainContentProps) => {
   return (
     <div className={`pl-[300px] ${className}`}>
       <TopHeader />

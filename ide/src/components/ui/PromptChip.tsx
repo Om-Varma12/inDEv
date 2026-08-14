@@ -1,5 +1,3 @@
-import React from 'react';
-
 interface PromptChipProps {
   icon: string;
   label: string;
@@ -7,12 +5,12 @@ interface PromptChipProps {
   className?: string;
 }
 
-export const PromptChip: React.FC<PromptChipProps> = ({
+export const PromptChip = ({
   icon,
   label,
   onClick,
   className = '',
-}) => {
+}: PromptChipProps) => {
   return (
     <div
       onClick={onClick}

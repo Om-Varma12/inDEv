@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 
 interface NavItem {
   path: string;
@@ -15,15 +15,15 @@ interface NavigationMenuProps {
 const defaultNavItems: NavItem[] = [
   { path: 'automations', label: 'Automations', icon: 'schedule' },
   { path: 'security', label: 'Security', icon: 'shield' },
-  { path: 'review', label: 'Review', icon: 'fitbit_jumping_jacks' },
+  { path: 'review', label: 'Review', icon: 'sports_gymnastics' },
   { path: 'wiki', label: 'Wiki', icon: 'book' },
 ];
 
-export const NavigationMenu: React.FC<NavigationMenuProps> = ({
+export const NavigationMenu = ({
   className = '',
   activePath = 'automations',
   onNavigate,
-}) => {
+}: NavigationMenuProps) => {
   const [currentPath, setCurrentPath] = useState(activePath);
 
   const handleNavClick = (path: string) => {

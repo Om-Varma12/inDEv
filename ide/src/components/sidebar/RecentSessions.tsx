@@ -1,4 +1,3 @@
-import React from 'react';
 import { IconButton } from '../ui';
 
 interface RecentSessionsProps {
@@ -6,10 +5,10 @@ interface RecentSessionsProps {
   className?: string;
 }
 
-export const RecentSessions: React.FC<RecentSessionsProps> = ({
+export const RecentSessions = ({
   sessions = [],
   className = '',
-}) => {
+}: RecentSessionsProps) => {
   return (
     <div className={`mt-xl px-md flex-1 ${className}`}>
       <div className="flex items-center justify-between mb-sm">

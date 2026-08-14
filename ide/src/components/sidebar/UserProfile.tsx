@@ -1,16 +1,14 @@
-import React from 'react';
-
 interface UserProfileProps {
   username: string;
   avatarInitial?: string;
   className?: string;
 }
 
-export const UserProfile: React.FC<UserProfileProps> = ({
+export const UserProfile = ({
   username,
   avatarInitial = username.charAt(0).toUpperCase(),
   className = '',
-}) => {
+}: UserProfileProps) => {
   return (
     <div className={`flex items-center gap-sm ${className}`}>
       <div className="w-5 h-5 rounded-full bg-[#333333] flex items-center justify-center text-[10px] text-on-surface">

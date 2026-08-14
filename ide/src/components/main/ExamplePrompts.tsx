@@ -1,4 +1,3 @@
-import React from 'react';
 import { PromptChip } from '../ui';
 
 interface ExamplePrompt {
@@ -18,11 +17,11 @@ const defaultPrompts: ExamplePrompt[] = [
   { icon: 'bug_report', label: 'Fix failing tests' },
 ];
 
-export const ExamplePrompts: React.FC<ExamplePromptsProps> = ({
+export const ExamplePrompts = ({
   prompts = defaultPrompts,
   onPromptClick,
   className = '',
-}) => {
+}: ExamplePromptsProps) => {
   return (
     <div className={`flex justify-center gap-4 mt-8 opacity-60 ${className}`}>
       {prompts.map((prompt, index) => (

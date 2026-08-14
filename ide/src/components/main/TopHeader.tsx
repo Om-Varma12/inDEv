@@ -1,10 +1,8 @@
-import React from 'react';
-
 interface TopHeaderProps {
   className?: string;
 }
 
-export const TopHeader: React.FC<TopHeaderProps> = ({ className = '' }) => {
+export const TopHeader = ({ className = '' }: TopHeaderProps) => {
   return (
     <header
       className={`

@@ -1,4 +1,3 @@
-import React from 'react';
 import { UserProfile } from './UserProfile';
 import { NewSessionButton } from './NewSessionButton';
 import { NavigationMenu } from './NavigationMenu';
@@ -11,10 +10,10 @@ interface SidebarProps {
   className?: string;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({
+export const Sidebar = ({
   username = 'Om-Varma12',
   className = '',
-}) => {
+}: SidebarProps) => {
   return (
     <aside
       className={`
