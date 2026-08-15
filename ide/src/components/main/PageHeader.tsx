@@ -33,7 +33,7 @@ export const PageHeader = ({ className = '' }: PageHeaderProps) => {
           </svg>
         </div>
         <span className="font-headline-sm text-on-surface text-[20px] font-semibold tracking-tight">
-          Devin
+          InDev
         </span>
       </div>
       <ToggleButton

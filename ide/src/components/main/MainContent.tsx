@@ -7,12 +7,16 @@ interface MainContentProps {
   className?: string;
   onSendMessage?: (message: string) => void;
   onPromptClick?: (prompt: string) => void;
+  isFirstMsg?: boolean;
+  projectName?: string;
 }
 
 export const MainContent = ({
   className = '',
   onSendMessage,
   onPromptClick,
+  isFirstMsg = true,
+  projectName = 'my-project',
 }: MainContentProps) => {
   return (
     <div className={`pl-[300px] ${className}`}>
@@ -21,7 +25,11 @@ export const MainContent = ({
         <div className="flex flex-col w-full min-h-[calc(100vh-64px)] items-center justify-center">
           <div className="w-full max-w-[686px] flex flex-col gap-6 p-4">
             <PageHeader />
-            <InputArea onSendMessage={onSendMessage} />
+            <InputArea 
+              onSendMessage={onSendMessage} 
+              isFirstMsg={isFirstMsg}
+              projectName={projectName}
+            />
             <ExamplePrompts onPromptClick={onPromptClick} />
           </div>
         </div>

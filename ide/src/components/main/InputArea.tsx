@@ -4,21 +4,53 @@ import { IconButton } from '../ui';
 interface InputAreaProps {
   placeholder?: string;
   onSendMessage?: (message: string) => void;
+  isFirstMsg?: boolean;
+  projectName?: string;
   className?: string;
 }
 
 export const InputArea = ({
-  placeholder = 'Ask Devin to build features, fix bugs, or work on your code',
+  placeholder = 'Ask InDev to build features, fix bugs, or work on your code',
   onSendMessage,
+  isFirstMsg = true,
+  projectName = 'my-project',
   className = '',
 }: InputAreaProps) => {
   const [message, setMessage] = useState('');
   const [mode, setMode] = useState('Normal');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSend = () => {
-    if (message.trim()) {
-      onSendMessage?.(message);
-      setMessage('');
+  const handleSend = async () => {
+    if (message.trim() && !isLoading) {
+      setIsLoading(true);
+      
+      try {
+        // Make API call to backend using proxy
+        const response = await fetch('/api/chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            message: message,
+            isFirstMsg: isFirstMsg,
+            projectName: projectName,
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          console.log('Backend response:', data);
+          onSendMessage?.(message);
+        } else {
+          console.error('Backend error:', response.statusText);
+        }
+      } catch (error) {
+        console.error('Failed to send message:', error);
+      } finally {
+        setIsLoading(false);
+        setMessage('');
+      }
     }
   };
 
@@ -60,7 +92,7 @@ export const InputArea = ({
           <IconButton icon="mic" size="lg" />
           <button
             onClick={handleSend}
-            disabled={!message.trim()}
+            disabled={!message.trim() || isLoading}
             className="
               w-[26px] h-[26px] rounded-full bg-secondary-fixed 
               hover:bg-secondary-fixed-dim transition-colors 
@@ -68,9 +100,15 @@ export const InputArea = ({
               disabled:opacity-50 disabled:cursor-not-allowed
             "
           >
-            <span className="material-symbols-outlined text-[16px] font-bold">
-              arrow_upward
-            </span>
+            {isLoading ? (
+              <span className="material-symbols-outlined text-[16px] font-bold animate-spin">
+                refresh
+              </span>
+            ) : (
+              <span className="material-symbols-outlined text-[16px] font-bold">
+                arrow_upward
+              </span>
+            )}
           </button>
         </div>
       </div>
