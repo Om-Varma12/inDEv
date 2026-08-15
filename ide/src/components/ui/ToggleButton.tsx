@@ -1,5 +1,3 @@
-import React from 'react';
-
 interface ToggleButtonProps {
   options: { label: string; value: string }[];
   selectedValue: string;
@@ -7,12 +5,12 @@ interface ToggleButtonProps {
   className?: string;
 }
 
-export const ToggleButton: React.FC<ToggleButtonProps> = ({
+export const ToggleButton = ({
   options,
   selectedValue,
   onChange,
   className = '',
-}) => {
+}: ToggleButtonProps) => {
   return (
     <div
       className={`

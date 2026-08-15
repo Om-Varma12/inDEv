@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { ToggleButton } from '../ui';
 
 interface PageHeaderProps {
   className?: string;
 }
 
-export const PageHeader: React.FC<PageHeaderProps> = ({ className = '' }) => {
+export const PageHeader = ({ className = '' }: PageHeaderProps) => {
   const [mode, setMode] = useState('Agent');
 
   const toggleOptions = [

@@ -1,4 +1,3 @@
-import React from 'react';
 import { Sidebar } from '../sidebar';
 import { MainContent } from '../main';
 
@@ -9,12 +8,12 @@ interface MainLayoutProps {
   className?: string;
 }
 
-export const MainLayout: React.FC<MainLayoutProps> = ({
+export const MainLayout = ({
   username = 'Om-Varma12',
   onSendMessage,
   onPromptClick,
   className = '',
-}) => {
+}: MainLayoutProps) => {
   return (
     <div className={`bg-background font-body-md text-on-surface ${className}`}>
       <Sidebar username={username} />

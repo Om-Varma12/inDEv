@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { IconButton } from '../ui';
 
 interface InputAreaProps {
@@ -7,11 +7,11 @@ interface InputAreaProps {
   className?: string;
 }
 
-export const InputArea: React.FC<InputAreaProps> = ({
+export const InputArea = ({
   placeholder = 'Ask Devin to build features, fix bugs, or work on your code',
   onSendMessage,
   className = '',
-}) => {
+}: InputAreaProps) => {
   const [message, setMessage] = useState('');
   const [mode, setMode] = useState('Normal');
 
@@ -44,8 +44,8 @@ export const InputArea: React.FC<InputAreaProps> = ({
       />
       <div className="flex items-center justify-between mt-auto">
         <div className="flex items-center gap-4 text-on-surface-variant">
-          <IconButton icon="add" />
-          <IconButton icon="tune" />
+          <IconButton icon="add" size="lg" />
+          <IconButton icon="tune" size="lg" />
           <button
             onClick={() => setMode(mode === 'Normal' ? 'Advanced' : 'Normal')}
             className="flex items-center gap-1 px-2 py-1 hover:bg-surface-container-high rounded-md transition-colors text-body-sm"
@@ -57,7 +57,7 @@ export const InputArea: React.FC<InputAreaProps> = ({
           </button>
         </div>
         <div className="flex items-center gap-3">
-          <IconButton icon="mic" />
+          <IconButton icon="mic" size="lg" />
           <button
             onClick={handleSend}
             disabled={!message.trim()}

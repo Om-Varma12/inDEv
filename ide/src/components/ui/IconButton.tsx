@@ -1,5 +1,3 @@
-import React from 'react';
-
 interface IconButtonProps {
   icon: string;
   onClick?: () => void;
@@ -8,13 +6,13 @@ interface IconButtonProps {
   disabled?: boolean;
 }
 
-export const IconButton: React.FC<IconButtonProps> = ({
+export const IconButton = ({
   icon,
   onClick,
   className = '',
   size = 'md',
   disabled = false,
-}) => {
+}: IconButtonProps) => {
   const sizeClasses = {
     sm: 'text-[16px]',
     md: 'text-[18px]',
