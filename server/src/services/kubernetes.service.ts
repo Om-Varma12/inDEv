@@ -14,6 +14,9 @@ class KubernetesService{
     }
 
     async createPod(podName: string): Promise<void> {
+
+        // we cannot make .yaml file for this, as the name is being passed from route and its dynamic, 
+        // writing in .yaml would keep it hardcoded and static
         const pod: k8s.V1Pod = {
             apiVersion: "v1",
             kind: "Pod",
@@ -72,13 +75,21 @@ class KubernetesService{
                 return;
             }
             if(phase == "Failed" || phase == "Unknown"){
-                throw new Error(
-                    `Pod ${podName} failed with status ${phase}`
-                );
+                throw new Error(`Pod ${podName} failed with status ${phase}`);
             }
 
+            // kind of sleep() function...
             await new Promise((resolve) => setTimeout(resolve, 1000));
         }
+    }
+
+    async deletePod(podName: string): Promise<void> {
+        await this.coreApi.deleteNamespacedPod({
+            name: podName,
+            namespace: "default",
+        });
+
+        console.log(`pod ${podName} deleted`);
     }
 }
 

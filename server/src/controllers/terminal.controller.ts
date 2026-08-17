@@ -1,82 +1,123 @@
 import WebSocket from "ws";
 import kubernetesService from "../services/kubernetes.service.js";
-import { error } from "node:console";
 
 export async function handleTerminalConnection(
     ws: WebSocket
 ){
-    console.log("ws client connected");
+    console.log("WebSocket client connected");
+
+    let podName: string | null = null;
 
     ws.send(
         JSON.stringify({
             type: "connected",
-            message: "ws connection established",
+            message: "WebSocket connection established",
         })
-    )
-    ws.on("message", async(data) => {
-        try{
-            const message = JSON.parse(data.toString());
-            console.log("ws msg: ", message);
+    );
 
-            if(message.type == "create"){
-                await createWorkspacePod(ws);
+    ws.on("message", async (data) => {
+        try {
+            const message = JSON.parse(data.toString());
+
+            console.log("WebSocket message:", message);
+
+            if (message.type === "create"){
+                if (podName !== null){
+                    ws.send(
+                        JSON.stringify({
+                            type: "error",
+                            message: "Workspace already exists",
+                        })
+                    );
+                    return;
+                }
+
+                podName = `indev-${Date.now()}`;
+
+                await createWorkspacePod(
+                    ws,
+                    podName
+                );
             }
-        }
+        } 
         catch(error){
-            console.log(error);
+            console.error("WebSocket message error:", error);
 
             ws.send(
                 JSON.stringify({
                     type: "error",
-                    message: "something went wrong",
+                    message: "Something went wrong",
                 })
             );
         }
     });
 
-    ws.on("close", () => {
-        console.log("ws client disconnected");
-    })
-    
-    ws.on("error", () => {
-        console.log("ws error: ", error);
-    })
+    ws.on("close", async () => {
+        console.log("WebSocket client disconnected");
+
+        if(podName !== null){
+            try{
+                await kubernetesService.deletePod(podName);
+                console.log(`Workspace ${podName} cleaned up`);
+            } 
+            catch(error){
+                console.error(`Failed to delete Pod ${podName}:`,error);
+            }
+        }
+    });
+
+    ws.on("error", (error) => {
+        console.error("WebSocket error:", error);
+    });
 }
 
-
 async function createWorkspacePod(
-    ws: WebSocket
+    ws: WebSocket,
+    podName: string
 ){
-    const podName = `indev-${Date.now()}`;
+    try{
+        ws.send(
+            JSON.stringify({
+                type: "creating",
+                message: "Creating workspace...",
+                podName,
+            })
+        );
 
-    ws.send(
-        JSON.stringify({
-            type: "creating",
-            message: "creating workspace......",    
-        })
-    );
+        console.log(`Creating Pod: ${podName}`);
 
-    console.log(`creating pod ${podName}`);
+        await kubernetesService.createPod(
+            podName
+        );
 
-    await kubernetesService.createPod(podName);
+        ws.send(
+            JSON.stringify({
+                type: "creating",
+                message: "Waiting for workspace...",
+                podName,
+            })
+        );
 
-    ws.send(
-        JSON.stringify({
-            type: "creating",
-            message: "waiting for workspace....",
-            podName,
-        })
-    );
+        await kubernetesService.waitForPodRunning(podName);
 
-    await kubernetesService.waitForPodRunning(podName);
+        console.log(`Pod ${podName} is running`);
 
-    console.log(`pod ${podName} is running`);
+        ws.send(
+            JSON.stringify({
+                type: "ready",
+                message: "Workspace is ready",
+                podName,
+            })
+        );
+    } 
+    catch(error){
+        console.error(`Failed to create workspace ${podName}:`, error);
 
-    ws.send(
-        JSON.stringify({
-            type: "ready",
-            message: "workspace is ready",
-            podName,
-        })
-    );
+        ws.send(
+            JSON.stringify({
+                type: "error",
+                message: "Failed to create workspace",
+            })
+        );
+    }
 }
