@@ -1,57 +1,62 @@
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { IconButton } from '../ui';
 
 interface InputAreaProps {
   placeholder?: string;
   onSendMessage?: (message: string) => void;
-  isFirstMsg?: boolean;
-  projectName?: string;
   className?: string;
 }
 
 export const InputArea = ({
-  placeholder = 'Ask InDev to build features, fix bugs, or work on your code',
+  placeholder = 'Ask Devin to build features, fix bugs, or work on your code',
   onSendMessage,
-  isFirstMsg = true,
-  projectName = 'my-project',
   className = '',
 }: InputAreaProps) => {
   const [message, setMessage] = useState('');
   const [mode, setMode] = useState('Normal');
-  const [isLoading, setIsLoading] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const handleSend = async () => {
-    if (message.trim() && !isLoading) {
-      setIsLoading(true);
-      
-      try {
-        // Make API call to backend using proxy
-        const response = await fetch('/api/chat', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            message: message,
-            isFirstMsg: isFirstMsg,
-            projectName: projectName,
-          }),
-        });
+  // Auto-resize: expand up to 10 lines (line-height 24px), then scroll
+  const LINE_HEIGHT = 24; // text-body-lg lineHeight
+  const MAX_LINES = 10;
+  const MAX_HEIGHT = LINE_HEIGHT * MAX_LINES; // 240px
 
-        if (response.ok) {
-          const data = await response.json();
-          console.log('Backend response:', data);
-          onSendMessage?.(message);
-        } else {
-          console.error('Backend error:', response.statusText);
+  const adjustHeight = useCallback(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    const capped = Math.min(el.scrollHeight, MAX_HEIGHT);
+    el.style.height = `${capped}px`;
+    el.style.overflowY = el.scrollHeight > MAX_HEIGHT ? 'auto' : 'hidden';
+  }, [MAX_HEIGHT]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setMessage(e.target.value);
+    // Height is adjusted in the next microtask after React updates the DOM
+    setTimeout(adjustHeight, 0);
+  };
+
+  const handleSend = () => {
+    if (message.trim()) {
+      onSendMessage?.(message);
+      setMessage('');
+      // Reset textarea height after send
+      setTimeout(() => {
+        const el = textareaRef.current;
+        if (el) {
+          el.style.height = '64px';
+          el.style.overflowY = 'hidden';
         }
-      } catch (error) {
-        console.error('Failed to send message:', error);
-      } finally {
-        setIsLoading(false);
-        setMessage('');
-      }
+      }, 0);
     }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+    // Shift+Enter: browser default behaviour inserts a newline — no need to handle
   };
 
   return (
@@ -65,13 +70,16 @@ export const InputArea = ({
       `}
     >
       <textarea
+        ref={textareaRef}
         value={message}
-        onChange={(e) => setMessage(e.target.value)}
+        onChange={handleChange}
+        onKeyDown={handleKeyDown}
         placeholder={placeholder}
+        style={{ height: '64px', overflowY: 'hidden' }}
         className="
-          w-full min-h-[64px] bg-transparent resize-none outline-none 
+          w-full bg-transparent resize-none outline-none 
           text-body-lg text-on-surface placeholder:text-on-surface-variant/50 
-          placeholder:font-body-lg
+          placeholder:font-body-lg scrollbar-thin scrollbar-thumb-outline-variant
         "
       />
       <div className="flex items-center justify-between mt-auto">
@@ -92,7 +100,7 @@ export const InputArea = ({
           <IconButton icon="mic" size="lg" />
           <button
             onClick={handleSend}
-            disabled={!message.trim() || isLoading}
+            disabled={!message.trim()}
             className="
               w-[26px] h-[26px] rounded-full bg-secondary-fixed 
               hover:bg-secondary-fixed-dim transition-colors 
@@ -100,15 +108,9 @@ export const InputArea = ({
               disabled:opacity-50 disabled:cursor-not-allowed
             "
           >
-            {isLoading ? (
-              <span className="material-symbols-outlined text-[16px] font-bold animate-spin">
-                refresh
-              </span>
-            ) : (
-              <span className="material-symbols-outlined text-[16px] font-bold">
-                arrow_upward
-              </span>
-            )}
+            <span className="material-symbols-outlined text-[16px] font-bold">
+              arrow_upward
+            </span>
           </button>
         </div>
       </div>

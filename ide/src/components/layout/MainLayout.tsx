@@ -1,6 +1,6 @@
 import { Sidebar } from '../sidebar';
 import { MainContent } from '../main';
-import { Message } from '../../App';
+import type { Message } from '../../App';
 
 interface MainLayoutProps {
   username?: string;

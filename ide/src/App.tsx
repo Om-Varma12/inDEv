@@ -12,7 +12,6 @@ function App() {
   const [messages, setMessages] = useState<Message[]>([]);
 
   const handleSendMessage = (messageText: string) => {
-    console.log('Sending message:', messageText);
     const userMsg: Message = {
       id: Date.now().toString(),
       role: 'user',
@@ -43,8 +42,6 @@ function App() {
       messages={messages}
       onSendMessage={handleSendMessage}
       onPromptClick={handlePromptClick}
-      isFirstMsg={messages.length === 0}
-      projectName="my-react-app"
     />
   );
 }
