@@ -1,18 +1,45 @@
+import { useState } from 'react';
 import { MainLayout } from './components/layout';
 
+export interface Message {
+  id: string;
+  role: 'user' | 'agent';
+  content: string;
+}
+
 function App() {
-  const handleSendMessage = (message: string) => {
-    console.log('Sending message:', message);
-    // TODO: Connect to backend API
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [messages, setMessages] = useState<Message[]>([]);
+
+  const handleSendMessage = (messageText: string) => {
+    const userMsg: Message = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: messageText,
+    };
+
+    setMessages((prev) => [...prev, userMsg]);
+
+    // Mock agent response
+    setTimeout(() => {
+      const agentMsg: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'agent',
+        content: `I've received your request: "${messageText}". I am analyzing the workspace and running some tests...`,
+      };
+      setMessages((prev) => [...prev, agentMsg]);
+    }, 1000);
   };
 
-  const handlePromptClick = (prompt: string) => {
-    console.log('Prompt clicked:', prompt);
-    // TODO: Handle prompt selection
+  const handlePromptClick = (promptText: string) => {
+    handleSendMessage(promptText);
   };
 
   return (
     <MainLayout
+      isSidebarCollapsed={isSidebarCollapsed}
+      onToggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+      messages={messages}
       onSendMessage={handleSendMessage}
       onPromptClick={handlePromptClick}
     />

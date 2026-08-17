@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { IconButton } from '../ui';
 
 interface InputAreaProps {
@@ -14,12 +14,49 @@ export const InputArea = ({
 }: InputAreaProps) => {
   const [message, setMessage] = useState('');
   const [mode, setMode] = useState('Normal');
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Auto-resize: expand up to 10 lines (line-height 24px), then scroll
+  const LINE_HEIGHT = 24; // text-body-lg lineHeight
+  const MAX_LINES = 10;
+  const MAX_HEIGHT = LINE_HEIGHT * MAX_LINES; // 240px
+
+  const adjustHeight = useCallback(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    const capped = Math.min(el.scrollHeight, MAX_HEIGHT);
+    el.style.height = `${capped}px`;
+    el.style.overflowY = el.scrollHeight > MAX_HEIGHT ? 'auto' : 'hidden';
+  }, [MAX_HEIGHT]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setMessage(e.target.value);
+    // Height is adjusted in the next microtask after React updates the DOM
+    setTimeout(adjustHeight, 0);
+  };
 
   const handleSend = () => {
     if (message.trim()) {
       onSendMessage?.(message);
       setMessage('');
+      // Reset textarea height after send
+      setTimeout(() => {
+        const el = textareaRef.current;
+        if (el) {
+          el.style.height = '64px';
+          el.style.overflowY = 'hidden';
+        }
+      }, 0);
     }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+    // Shift+Enter: browser default behaviour inserts a newline — no need to handle
   };
 
   return (
@@ -33,13 +70,16 @@ export const InputArea = ({
       `}
     >
       <textarea
+        ref={textareaRef}
         value={message}
-        onChange={(e) => setMessage(e.target.value)}
+        onChange={handleChange}
+        onKeyDown={handleKeyDown}
         placeholder={placeholder}
+        style={{ height: '64px', overflowY: 'hidden' }}
         className="
-          w-full min-h-[64px] bg-transparent resize-none outline-none 
+          w-full bg-transparent resize-none outline-none 
           text-body-lg text-on-surface placeholder:text-on-surface-variant/50 
-          placeholder:font-body-lg
+          placeholder:font-body-lg scrollbar-thin scrollbar-thumb-outline-variant
         "
       />
       <div className="flex items-center justify-between mt-auto">

@@ -3,3 +3,4 @@ export { PageHeader } from './PageHeader';
 export { InputArea } from './InputArea';
 export { ExamplePrompts } from './ExamplePrompts';
 export { MainContent } from './MainContent';
+export { ActiveWorkspace } from './ActiveWorkspace';

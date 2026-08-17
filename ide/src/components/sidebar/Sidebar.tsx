@@ -7,11 +7,15 @@ import { IconButton } from '../ui';
 
 interface SidebarProps {
   username?: string;
+  isCollapsed: boolean;
+  onToggle: () => void;
   className?: string;
 }
 
 export const Sidebar = ({
   username = 'Om-Varma12',
+  isCollapsed,
+  onToggle,
   className = '',
 }: SidebarProps) => {
   return (
@@ -19,6 +23,8 @@ export const Sidebar = ({
       className={`
         fixed left-0 top-0 h-full w-[300px] bg-background 
         border-r border-outline-variant z-50 flex flex-col
+        transition-all duration-300 ease-in-out
+        ${isCollapsed ? '-translate-x-full pointer-events-none opacity-0' : 'translate-x-0'}
         ${className}
       `}
     >
@@ -26,7 +32,7 @@ export const Sidebar = ({
         <UserProfile username={username} />
         <div className="flex items-center gap-sm">
           <IconButton icon="search" />
-          <IconButton icon="side_navigation" />
+          <IconButton icon="side_navigation" onClick={onToggle} />
         </div>
       </div>
       
