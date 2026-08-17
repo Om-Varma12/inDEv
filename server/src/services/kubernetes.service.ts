@@ -1,16 +1,16 @@
 import * as k8s from "@kubernetes/client-node";
-import { memoryUsage } from "node:process";
+import { Readable, Writable } from "stream";
 
 class KubernetesService{
     private kubeConfig: k8s.KubeConfig;
     private coreApi: k8s.CoreV1Api;
+    private exec: k8s.Exec;
 
     constructor(){
         this.kubeConfig = new k8s.KubeConfig();
-
         this.kubeConfig.loadFromDefault();
-
         this.coreApi = this.kubeConfig.makeApiClient(k8s.CoreV1Api);
+        this.exec = new k8s.Exec(this.kubeConfig);
     }
 
     async createPod(podName: string): Promise<void> {
@@ -90,6 +90,24 @@ class KubernetesService{
         });
 
         console.log(`pod ${podName} deleted`);
+    }
+
+    async connectToShell(
+        podName: string,
+        stdin: Readable,
+        stdout: Writable,
+        stderr: Writable,
+    ): Promise<void> {
+        await this.exec.exec(
+            "default",
+            podName,
+            "workspace",
+            ["/bin/bash"],
+            stdout,
+            stderr,
+            stdin,
+            true,
+        );
     }
 }
 

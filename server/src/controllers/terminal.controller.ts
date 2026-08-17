@@ -1,5 +1,9 @@
 import WebSocket from "ws";
+
+import { PassThrough } from "node:stream";
+
 import kubernetesService from "../services/kubernetes.service.js";
+
 
 export async function handleTerminalConnection(
     ws: WebSocket
@@ -7,6 +11,7 @@ export async function handleTerminalConnection(
     console.log("WebSocket client connected");
 
     let podName: string | null = null;
+    let shellStdin: PassThrough | null = null;
 
     ws.send(
         JSON.stringify({
@@ -21,7 +26,21 @@ export async function handleTerminalConnection(
 
             console.log("WebSocket message:", message);
 
-            if (message.type === "create"){
+            if(message.type == "input"){
+                if(shellStdin == null){
+                    ws.send(
+                        JSON.stringify({
+                            type: "error",
+                            message: "Shell is not ready",
+                        })
+                    );
+                    return;
+                }
+                shellStdin.write(message.data);
+                return;
+            }
+
+            if (message.type == "create"){
                 if (podName !== null){
                     ws.send(
                         JSON.stringify({
@@ -34,7 +53,7 @@ export async function handleTerminalConnection(
 
                 podName = `indev-${Date.now()}`;
 
-                await createWorkspacePod(
+                shellStdin = await createWorkspacePod(
                     ws,
                     podName
                 );
@@ -75,7 +94,7 @@ export async function handleTerminalConnection(
 async function createWorkspacePod(
     ws: WebSocket,
     podName: string
-){
+): Promise<PassThrough> {
     try{
         ws.send(
             JSON.stringify({
@@ -110,6 +129,33 @@ async function createWorkspacePod(
                 podName,
             })
         );
+
+
+        const stdin = new PassThrough();
+        const stdout = new PassThrough();
+        const stderr = new PassThrough();
+
+        stdout.on("data", (data: Buffer) => {
+            if(ws.readyState == WebSocket.OPEN){
+                ws.send(data.toString());
+            }
+        })
+        stderr.on("data", (data: Buffer) => {
+            if(ws.readyState == WebSocket.OPEN){
+                ws.send(data.toString());
+            }
+        })
+
+        kubernetesService.connectToShell(
+            podName,
+            stdin,
+            stdout,
+            stderr
+        ).catch((error) => {
+            console.error(`Shell error for ${podName}:`, error);
+        });
+
+        return stdin;
     } 
     catch(error){
         console.error(`Failed to create workspace ${podName}:`, error);
@@ -120,5 +166,7 @@ async function createWorkspacePod(
                 message: "Failed to create workspace",
             })
         );
+
+        throw error;
     }
 }
