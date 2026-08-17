@@ -16,7 +16,7 @@ export async function handleTerminalConnection(
     );
 
     ws.on("message", async (data) => {
-        try {
+        try{
             const message = JSON.parse(data.toString());
 
             console.log("WebSocket message:", message);
@@ -64,6 +64,7 @@ export async function handleTerminalConnection(
                 console.error(`Failed to delete Pod ${podName}:`,error);
             }
         }
+        
     });
 
     ws.on("error", (error) => {
