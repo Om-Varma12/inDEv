@@ -39,7 +39,7 @@ class KubernetesService{
                         stdinOnce: false,
                         tty: true,
 
-                        resources:{
+                        resources: {
                             requests: {
                                 cpu: "250m",
                                 memory: "512Mi",
@@ -48,6 +48,26 @@ class KubernetesService{
                                 cpu: "1",
                                 memory: "1536Mi",
                             },
+                        },
+
+                        securityContext: {
+                            runAsNonRoot: true,
+                            runAsUser: 1000,    // -> this is user id assigned to user accessing this pod, so its not 'root' user
+                            runAsGroup: 1000,
+                            allowPrivilegeEscalation: false,
+                            // UID 1000 is an ordinary user.
+                            // Normally, that process has only the permissions granted to user 1000.
+                            // Privilege escalation means the process somehow causes a new process to have more privilege than it started with.
+                            // this key restricts that
+
+                            capabilities: {
+                                drop: ["ALL"]
+                            },
+
+                            seccompProfile: {
+                                type: "RuntimeDefault",
+                            },
+                            // => secure computing
                         }
                     },
                 ],
@@ -55,7 +75,7 @@ class KubernetesService{
         };
 
         await this.coreApi.createNamespacedPod({
-            namespace: "default",
+            namespace: "loom-workspaces",
             body: pod,
         });
     }
