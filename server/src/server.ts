@@ -15,7 +15,7 @@ app.use('/', () => {
     console.log("server is running")
 });
 
-const PORT = 5000;
+const PORT = process.env.PORT;
 
 const server = createServer(app);
 
