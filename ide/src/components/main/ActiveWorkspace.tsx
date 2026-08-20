@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { IconButton } from '../ui';
 import type { Message } from '../../App';
+import { TerminalComponent } from './TerminalComponent';
 
 interface ActiveWorkspaceProps {
   messages: Message[];
@@ -242,30 +243,7 @@ export const ActiveWorkspace = ({
 
           {/* Shell */}
           {activeTab === 'shell' && (
-            <div className="w-full h-full bg-surface-container-lowest px-md py-sm font-code-md text-[13px] text-zinc-300 overflow-y-auto leading-relaxed select-text">
-              <div className="text-zinc-500 mb-2">// Active developer server console log</div>
-              <div className="flex gap-2">
-                <span className="text-green-500">Om-Varma12@inDEv:~$</span>
-                <span>npm run dev</span>
-              </div>
-              <div className="text-zinc-400 mt-2">
-                <div>&gt; frontend@0.0.0 dev</div>
-                <div>&gt; vite</div>
-                <div className="h-2" />
-                <div>  VITE v8.2.1  ready in <span className="text-green-400">186 ms</span></div>
-                <div className="h-2" />
-                <div>  ➜  <span className="font-semibold text-on-surface">Local</span>:   <span className="text-cyan-400 underline cursor-pointer">http://localhost:5173/</span></div>
-                <div>  ➜  <span className="font-semibold text-on-surface">Network</span>: use <span className="text-zinc-500">--host</span> to expose</div>
-                <div className="h-2" />
-                <div className="text-green-400">✓ Page reloaded. (x1)</div>
-                <div className="text-zinc-500">[vite] hot updated: /src/App.tsx</div>
-                <div className="text-zinc-500">[vite] hot updated: /src/components/main/ActiveWorkspace.tsx</div>
-              </div>
-              <div className="flex gap-2 mt-4 items-center">
-                <span className="text-green-500">Om-Varma12@inDEv:~$</span>
-                <span className="w-2 h-4 bg-zinc-300 animate-pulse" />
-              </div>
-            </div>
+            <TerminalComponent />
           )}
 
           {/* Preview */}
