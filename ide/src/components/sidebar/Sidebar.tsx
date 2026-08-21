@@ -5,19 +5,22 @@ import { RecentSessions } from './RecentSessions';
 import { SidebarFooter } from './SidebarFooter';
 import { IconButton } from '../ui';
 
+import { useAuth } from '../../contexts/AuthContext';
+
 interface SidebarProps {
-  username?: string;
   isCollapsed: boolean;
   onToggle: () => void;
   className?: string;
 }
 
 export const Sidebar = ({
-  username = 'Om-Varma12',
   isCollapsed,
   onToggle,
   className = '',
 }: SidebarProps) => {
+  const { user } = useAuth();
+  const username = user?.signInDetails?.loginId ?? user?.username ?? 'Guest';
+
   return (
     <aside
       className={`
