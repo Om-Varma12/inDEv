@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { MainLayout } from './components/layout';
+import { AuthModal } from './components/auth';
 
 export interface Message {
   id: string;
@@ -36,13 +37,16 @@ function App() {
   };
 
   return (
-    <MainLayout
-      isSidebarCollapsed={isSidebarCollapsed}
-      onToggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-      messages={messages}
-      onSendMessage={handleSendMessage}
-      onPromptClick={handlePromptClick}
-    />
+    <>
+      <MainLayout
+        isSidebarCollapsed={isSidebarCollapsed}
+        onToggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+        messages={messages}
+        onSendMessage={handleSendMessage}
+        onPromptClick={handlePromptClick}
+      />
+      <AuthModal />
+    </>
   );
 }
 

@@ -3,7 +3,6 @@ import { MainContent } from '../main';
 import type { Message } from '../../App';
 
 interface MainLayoutProps {
-  username?: string;
   isSidebarCollapsed: boolean;
   onToggleSidebar: () => void;
   messages: Message[];
@@ -13,7 +12,6 @@ interface MainLayoutProps {
 }
 
 export const MainLayout = ({
-  username = 'Om-Varma12',
   isSidebarCollapsed,
   onToggleSidebar,
   messages,
@@ -23,12 +21,11 @@ export const MainLayout = ({
 }: MainLayoutProps) => {
   return (
     <div className={`bg-background font-body-md text-on-surface ${className}`}>
-      <Sidebar 
-        username={username} 
+      <Sidebar
         isCollapsed={isSidebarCollapsed}
         onToggle={onToggleSidebar}
       />
-      <MainContent 
+      <MainContent
         isSidebarCollapsed={isSidebarCollapsed}
         onToggleSidebar={onToggleSidebar}
         messages={messages}
