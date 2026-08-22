@@ -1,4 +1,12 @@
+// main
 export interface ProjectStructure {
+    name: string;
+    type: "file" | "directory";
+    children?: ProjectStructure[];
+}
+
+// main
+export interface PlanStructure {
     structure: StructureItem[];
     modifiedFiles: ModifiedFile[];
     missingDependencies: MissingDependency[];

@@ -1,16 +1,17 @@
-import { run } from "./llm/ollama.service.js";
+import { run, planContract } from "./llm/ollama.service.js";
 
 import { reactProjectStructureSystemPrompt } from "../prompts/system/reactProjectStructure.system.js";
 import { reactTemplate } from "../prompts/templates/react.template.js";
 import { userUiPrompt } from "../prompts/user.prompt.js";
-import type { ProjectStructure } from "../types/project.types.js";
+import type { PlanStructure } from "../types/project.types.js";
+import type { LLMMessage } from "../types/llm.types.js";
 
-export const generateProjectStructure = async(
+export const generatePlanStructure= async(
     userQuery: string
 ) => {
     console.log("planning started")
 
-    const msg = [
+    const msg: LLMMessage[] = [
         {
             role: 'system',
             content: reactProjectStructureSystemPrompt
@@ -28,9 +29,8 @@ export const generateProjectStructure = async(
             content: userQuery
         },
     ]
-    const result = await run(msg)
+    const result = await run(msg, planContract)
     console.log(result)
-    const projectStructure: ProjectStructure = JSON.parse(result) 
 
-    return projectStructure
+    return result
 }
