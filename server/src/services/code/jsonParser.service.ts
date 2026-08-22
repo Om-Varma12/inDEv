@@ -194,6 +194,17 @@ function stripCodeFences(text: string): string {
  * normalization is handled separately by repairJSONSyntax /
  * convertSingleQuotedStrings, which run on the whole (non-string-literal)
  * text and need to see raw single quotes to detect JS-style strings.
+ *
+ * NOTE: this scanner correctly only opens/closes on `"`, not `'` — it
+ * was already right. The bug fixed in this file is in the OTHER
+ * string-boundary scanners below (extractLastJSONSpan, balanceFrom,
+ * closeUnterminatedJSON, stripCommentsOutsideStrings), which previously
+ * treated `'` as a second valid string delimiter. That's wrong for JSON:
+ * JSON strings are only ever double-quoted, so an apostrophe inside
+ * plain text (or, after switching prompts to single-quoted JSX, an
+ * apostrophe in every `className='foo'`) was flipping their notion of
+ * "inside a string" on and off incorrectly, desyncing brace-depth
+ * tracking for everything that followed. See the fixed functions below.
  */
 function fixInvalidEscapes(text: string): string {
   const validEscapes = new Set(["\"", "\\", "/", "b", "f", "n", "r", "t", "u"]);
@@ -275,6 +286,13 @@ function fixInvalidEscapes(text: string): string {
  *
  * Falls back to "first balanced span" only if no valid span is found
  * scanning from the end.
+ *
+ * FIX: string-boundary tracking now only recognizes `"` as a JSON string
+ * delimiter. Previously `'` was also treated as opening/closing a
+ * string, which is wrong for JSON (JSON has no single-quoted strings)
+ * and meant a single apostrophe in surrounding text/code — e.g. "don't",
+ * or `className='foo'` in generated JSX — would flip `inString` and
+ * desync brace-depth counting for the remainder of the scan.
  */
 function extractLastJSONSpan(text: string): string | null {
   // Collect candidate start indices: only { or [ that occur while not
@@ -282,7 +300,6 @@ function extractLastJSONSpan(text: string): string | null {
   const starts: number[] = [];
   let inString = false;
   let escaped = false;
-  let quoteChar = "";
   let depth = 0;
 
   for (let i = 0; i < text.length; i++) {
@@ -290,12 +307,11 @@ function extractLastJSONSpan(text: string): string | null {
     if (inString) {
       if (escaped) escaped = false;
       else if (ch === "\\") escaped = true;
-      else if (ch === quoteChar) inString = false;
+      else if (ch === '"') inString = false;
       continue;
     }
-    if (ch === '"' || ch === "'") {
+    if (ch === '"') {
       inString = true;
-      quoteChar = ch;
       continue;
     }
     if (ch === "{" || ch === "[") {
@@ -317,7 +333,9 @@ function extractLastJSONSpan(text: string): string | null {
 }
 
 /** Given a start index, returns the balanced bracket span, or the
- *  remainder of the string if unbalanced (truncated). */
+ *  remainder of the string if unbalanced (truncated).
+ *
+ *  FIX: same as extractLastJSONSpan — only `"` opens/closes a string. */
 function balanceFrom(text: string, startIdx: number): string | null {
   const openChar = text[startIdx];
   const closeChar = openChar === "{" ? "}" : "]";
@@ -325,7 +343,6 @@ function balanceFrom(text: string, startIdx: number): string | null {
   let depth = 0;
   let inString = false;
   let escaped = false;
-  let quoteChar = "";
 
   for (let i = startIdx; i < text.length; i++) {
     const ch = text[i];
@@ -333,13 +350,12 @@ function balanceFrom(text: string, startIdx: number): string | null {
     if (inString) {
       if (escaped) escaped = false;
       else if (ch === "\\") escaped = true;
-      else if (ch === quoteChar) inString = false;
+      else if (ch === '"') inString = false;
       continue;
     }
 
-    if (ch === '"' || ch === "'") {
+    if (ch === '"') {
       inString = true;
-      quoteChar = ch;
       continue;
     }
 
@@ -380,6 +396,17 @@ function repairJSONSyntax(text: string): string {
   return out;
 }
 
+/**
+ * NOTE: this function legitimately needs to recognize BOTH `"` and `'`
+ * as string delimiters — unlike the JSON-only scanners above, this runs
+ * on pre-repair text that may still contain JS-style single-quoted
+ * strings (that's what convertSingleQuotedStrings, called right after
+ * this in repairJSONSyntax, is there to convert). Stripping `//` or `/* *\/`
+ * that happens to appear inside a single-quoted JS string still needs to
+ * not treat it as a comment, so both quote characters must be tracked
+ * here. This one was already correct as originally written and is
+ * unchanged.
+ */
 function stripCommentsOutsideStrings(text: string): string {
   let out = "";
   let inString = false;
@@ -475,10 +502,19 @@ function convertSingleQuotedStrings(text: string): string {
   return out;
 }
 
+/**
+ * FIX: string-boundary tracking now only recognizes `"` as a JSON string
+ * delimiter, same reasoning as extractLastJSONSpan/balanceFrom above.
+ * This function runs LATE in the pipeline (after repairJSONSyntax, which
+ * already converts single-quoted JS strings to double-quoted JSON
+ * strings via convertSingleQuotedStrings) — by this point any remaining
+ * `'` characters are just apostrophes/JSX-quotes inside already-double-
+ * quoted string content, not string delimiters, and must not be treated
+ * as such.
+ */
 function closeUnterminatedJSON(text: string): string {
   let inString = false;
   let escaped = false;
-  let quoteChar = "";
   const stack: string[] = [];
 
   for (let i = 0; i < text.length; i++) {
@@ -487,13 +523,12 @@ function closeUnterminatedJSON(text: string): string {
     if (inString) {
       if (escaped) escaped = false;
       else if (ch === "\\") escaped = true;
-      else if (ch === quoteChar) inString = false;
+      else if (ch === '"') inString = false;
       continue;
     }
 
-    if (ch === '"' || ch === "'") {
+    if (ch === '"') {
       inString = true;
-      quoteChar = ch;
       continue;
     }
 
@@ -502,7 +537,7 @@ function closeUnterminatedJSON(text: string): string {
   }
 
   let out = text;
-  if (inString) out += quoteChar;
+  if (inString) out += '"';
   out = out.replace(/,\s*$/, "");
   out = out.replace(/:\s*$/, ": null");
 

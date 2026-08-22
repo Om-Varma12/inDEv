@@ -29,7 +29,7 @@ export const generateProjectStructure = async(
         },
     ]
     const result = await run(msg)
-
+    console.log(result)
     const projectStructure: ProjectStructure = JSON.parse(result) 
 
     return projectStructure

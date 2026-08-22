@@ -5,18 +5,20 @@ import { generateProjectStructure } from "../services/planner.service.js";
 
 
 export const sendMessage = async (req: Request, res: Response) => {
-    // const { message, isFirstMsg, projectName} = req.body;
-    // const projectPath = `../../outputs/${projectName}`;
+    const { message, isFirstMsg, projectName} = req.body;
+    const projectPath = `../../outputs/${projectName}`;
 
-    // const projectStructure = await generateProjectStructure(message);
-    // await initReactProject(projectPath)
+    const projectStructure = await generateProjectStructure(message);
+    await initReactProject(projectPath)
 
-    // await generateCode(projectStructure, projectPath);
+    await generateCode(projectStructure, projectPath);
 
-    // res.json({
-    //     success: true,
-    //     message: 'done with the project'
-    // });
+    await validate(projectPath);
 
-    console.log("GOT")
+    res.json({
+        success: true,
+        message: 'done with the project'
+    });
+
+    // console.log("GOT")
 };
