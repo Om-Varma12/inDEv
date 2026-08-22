@@ -15,7 +15,7 @@ export const llmParse = async(
         },
         {
             role: 'user',
-            content: JSON.stringify(code)
+            content: code
         }
     ]
 

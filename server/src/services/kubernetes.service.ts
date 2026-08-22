@@ -9,8 +9,11 @@ class KubernetesService{
     constructor(){
         this.kubeConfig = new k8s.KubeConfig();
         this.kubeConfig.loadFromDefault();
+        // console.log(this.kubeConfig.getCurrentCluster());
         this.coreApi = this.kubeConfig.makeApiClient(k8s.CoreV1Api);
         this.exec = new k8s.Exec(this.kubeConfig);
+        // console.log("CLUSTER:", this.kubeConfig.getCurrentCluster());
+        // console.log("API CLIENT:", this.coreApi);
     }
 
     async createPod(podName: string): Promise<void> {
@@ -84,7 +87,7 @@ class KubernetesService{
         while(true){
             const response = await this.coreApi.readNamespacedPod({
                 name: podName,
-                namespace: "default",
+                namespace: "loom-workspaces",
             });
 
             const phase = response.status?.phase;
@@ -106,7 +109,7 @@ class KubernetesService{
     async deletePod(podName: string): Promise<void> {
         await this.coreApi.deleteNamespacedPod({
             name: podName,
-            namespace: "default",
+            namespace: "loom-workspaces",
         });
 
         console.log(`pod ${podName} deleted`);
@@ -119,7 +122,7 @@ class KubernetesService{
         stderr: Writable,
     ): Promise<void> {
         await this.exec.exec(
-            "default",
+            "loom-workspaces",
             podName,
             "workspace",
             ["/bin/bash"],

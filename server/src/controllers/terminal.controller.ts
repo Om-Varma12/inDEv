@@ -6,9 +6,11 @@ import kubernetesService from "../services/kubernetes.service.js";
 
 
 export async function handleTerminalConnection(
-    ws: WebSocket
+    ws: WebSocket,
+    user: any
 ){
     console.log("WebSocket client connected");
+    console.log("Authenticated user:", user);
 
     let podName: string | null = null;
     let shellStdin: PassThrough | null = null;

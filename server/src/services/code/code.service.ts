@@ -2,7 +2,7 @@ import type { ProjectStructure, StructureItem, ModifiedFile } from "../../types/
 import type { LLMMessage, LLMResponse } from "../../types/llm.types.js";
 
 import { codeGenerationPrompt, codeModificationPrompt } from "../../prompts/system/code.system.js";
-import { run } from "../llm/groq.service.js"
+import { run } from "../llm/ollama.service.js"
 
 
 import { writeProjectFile, createDirectory, readProjectFile } from "../filesystem.service.js";
@@ -11,11 +11,12 @@ export const generateCode = async(
     plan: ProjectStructure,
     projectName: string
 ) => {
-
     for(const item of plan.structure){
         if(item.type == 'file'){
             const code = await generateFile(item);
             await writeProjectFile(projectName + '/' + item.path, code);
+            console.log("sleeping for 10s")
+            await new Promise(resolve => setTimeout(resolve, 10000));
         }
         else if(item.type == 'folder'){
             await createDirectory(projectName + '/' + item.path);
@@ -48,7 +49,6 @@ export const generateFile = async(
     ]
 
     const response = await run(msg)
-
     return response.code;
 }
 

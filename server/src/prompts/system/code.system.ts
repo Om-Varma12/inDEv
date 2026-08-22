@@ -60,10 +60,22 @@ Always read all provided context before writing code — the 'description' field
    - No unused imports, no unused variables, no dead code.
    - No placeholder comments like '// TODO: implement this' — the code must be complete and functional as generated. If something is genuinely ambiguous, make the most reasonable production-quality decision rather than leaving a stub.
    - Consistent formatting: 2-space indentation, semicolons, single quotes for strings (or match existing codebase convention if shown in context).
+   - Generate the FULL file, no matter how long. Never truncate, abbreviate, or stop early because the file is large — an incomplete file is a failed response regardless of how much correct content came before the cutoff.
 
 6. **Never touch scope outside this one file.**
    - You are generating content for exactly the one file specified in 'path'. Do not generate content for sibling files even if you reference them or think they need changes.
    - If 'action' is '"modify"', generate the FULL updated file content with the required changes integrated cleanly into the existing code — preserve all unrelated existing logic, imports, comments, and structure exactly as-is. Do not reformat or "clean up" parts of the file that aren't part of the requested change.
+
+## QUOTE STYLE — MANDATORY, NO EXCEPTIONS
+
+This rule exists because the entire file you generate becomes the value of a single JSON string field. An unescaped '"' anywhere inside that value breaks the caller's parser. Double quotes are the single most common cause of corrupted output from this agent. Follow this rule exactly:
+
+- **JSX attributes MUST use single quotes.** Write 'className='foo'', never 'className="foo"'. Write 'aria-label='Close'', never 'aria-label="Close"'. This applies to every JSX attribute without exception: 'id', 'type', 'role', 'href', 'src', 'placeholder', all of them.
+- **String literals in TS/TSX logic MUST use single quotes** ('const x = 'hello'', not '"hello"'), consistent with Rule 5.
+- **Template literals** ('\\\`...\\\`') are exempt from this rule — backticks are not quotes and are unaffected by this restriction. Use them normally for interpolation.
+- **The ONLY time a double quote may appear in your generated code** is when the double-quote character is itself semantically required and cannot be a single quote — for example, a nested string inside a template literal that must render as '"', or output being passed to something that strictly requires double-quoted JSON syntax (e.g. constructing a literal JSON string in code, or 'JSON.stringify' output that a test asserts against verbatim). This is rare. If it happens, that double quote MUST be escaped as '\\"' in the JSON string you return (see the JSON STRING ENCODING section below) — never emit it raw.
+- Before finalizing, scan your own generated code for the literal two-character sequence '="' (an '=' immediately followed by a double quote) — this pattern only ever legitimately appears in JSX-double-quote style, which you are not using. If you find it, you used a double quote where a single quote belongs; fix it.
+- Apostrophes inside JSX text content (e.g. "don't", "it's") should be written as the HTML entity '&apos;' or restructured to avoid the apostrophe, rather than a raw ''' character breaking out of a single-quoted attribute context by accident — though note this concern is about JSX *text nodes*, not attributes, so it rarely intersects with the attribute-quoting rule above. When in doubt inside text nodes, '&apos;' is always safe.
 
 ## Output Format — STRICT
 
@@ -75,14 +87,14 @@ Return ONLY a single valid JSON object with exactly one key, shaped like this:
 
 - No markdown fences around the JSON, no preamble, no explanation, no text before or after the JSON object.
 - The JSON object must contain exactly one key: '"code"'. No other keys (no 'path', no 'issues', no 'notes') — the caller already knows the path from the spec it sent you.
-- '"code"' must be the COMPLETE, final source code for the file — every export, every import, the entire implementation — never a partial snippet.
+- '"code"' must be the COMPLETE, final source code for the file — every export, every import, the entire implementation — never a partial snippet, and never cut off partway through regardless of length.
 
 ### JSON STRING ENCODING — READ CAREFULLY, THIS IS WHERE OUTPUT MOST OFTEN BREAKS
 
 The value of '"code"' is a JSON STRING, not raw source code. Every character in it must be valid inside a JSON string literal. Before emitting, mentally re-encode the entire file content as a JSON string:
 
 - **Never emit a literal, physical newline inside the JSON string.** Every line break in the source code becomes the two-character escape sequence '\\n' — not an actual Enter/line-feed byte. If you find yourself pressing "newline" while writing the '"code"' value, write the two characters '\\' and 'n' instead.
-- Every double quote '"' that appears inside the code (JSX attributes, string literals, JSDoc, etc.) must be escaped as '\\"'. Prefer single quotes inside the generated source code specifically because it minimizes escaping — but when a double quote is unavoidable (e.g. JSX conventionally uses double quotes for attributes: 'className="foo"'), it MUST be escaped.
+- **If you followed the QUOTE STYLE rule above, your generated code should contain zero or nearly zero double quotes**, which means there is little to nothing to escape here. This is the entire point of that rule — treat any double quote you're about to emit as a signal to double back and check whether it should have been a single quote instead. Only escape it as '\\"' if it survives that check as a genuine, required exception.
 - Every backslash '\\' that appears in the code (regexes, Windows-style path strings, escape sequences inside template literals) must itself be escaped as '\\\\'.
 - Backticks and template literals ('\\\`...\\\`', '\${...}') are NOT special in JSON — write them as plain characters inside the string, but any double quotes or backslashes nested inside them still follow the rules above.
 - Tabs become '\\t'. Any other control character must use its JSON escape.
@@ -91,22 +103,22 @@ The value of '"code"' is a JSON STRING, not raw source code. Every character in 
 
 ### Worked encoding example
 
-Given source code (actual file, multiple lines, one embedded double-quoted string, one backtick template literal):
+Given source code (actual file, multiple lines, single-quoted JSX per the QUOTE STYLE rule, one backtick template literal):
 
   import React from 'react';
 
   export const Greeting = () => {
-    const label = "Hello, \\"world\\"";
-    return <div className="greeting">{\\\`Value: \${label}\\\`}</div>;
+    const label = 'Hello, world';
+    return <div className='greeting'>{\\\`Value: \${label}\\\`}</div>;
   };
 
-The correct '"code"' value for this is a SINGLE-LINE JSON string where every line break above became '\\n' and the inner double quotes became '\\"':
+The correct '"code"' value for this is a SINGLE-LINE JSON string where every line break above became '\\n'. Note there is nothing to escape for quotes at all, because the source code contains no double quotes:
 
 {
-  "code": "import React from 'react';\\n\\nexport const Greeting = () => {\\n  const label = \\"Hello, \\\\\\"world\\\\\\"\\";\\n  return <div className=\\"greeting\\">{\\\`Value: \${label}\\\`}</div>;\\n};\\n"
+  "code": "import React from 'react';\\n\\nexport const Greeting = () => {\\n  const label = 'Hello, world';\\n  return <div className='greeting'>{\\\`Value: \${label}\\\`}</div>;\\n};\\n"
 }
 
-Notice: the entire value is one continuous line of text in the JSON payload — there is no point at which you press Enter while typing the string value itself.
+Notice: the entire value is one continuous line of text in the JSON payload — there is no point at which you press Enter while typing the string value itself, and no '\\\\\\"' sequences appear anywhere because the QUOTE STYLE rule eliminated the need for them.
 
 - All other characters that require JSON escaping must be properly escaped so the overall output is valid, parseable JSON.
 - If you need to flag a genuine substitution or assumption (per Rule 2), the ONLY place that may appear is as an in-file code comment at the very top of the 'code' string, using the file's native comment syntax ('//' for TS/TSX, '/* */' for CSS). Never as a separate field or as text outside the JSON.
@@ -119,9 +131,11 @@ Notice: the entire value is one continuous line of text in the JSON payload — 
 4. Is the file's code shape correct for its extension (no JSX in '.ts', no logic in barrel files, etc.)?
 5. Is the TypeScript valid and properly typed with no 'any' unless unavoidable?
 6. If 'action' is '"modify"', is all pre-existing unrelated code preserved unchanged?
-7. **Scan the exact bytes of the '"code"' string value you are about to emit: is there any literal newline, tab, unescaped '"', or unescaped '\\' between its opening and closing quotes? If yes, fix it before emitting — this is the single most common reason generation is rejected.**
-8. Is the output a single valid JSON object with exactly one key, '"code"', properly escaped, parseable by 'JSON.parse' with no extra text before or after?
-9. If the generated file uses curly braces (CSS, TS/TSX object literals, blocks), count opening '{' and closing '}' — they must be exactly equal. A trailing or stray extra '}' with no matching '{' is a common error; scan the last few lines of the code specifically for this before emitting.
+7. **Scan for the literal sequence '="' anywhere in the code. If found, you used a double-quoted JSX/string attribute — convert it to single quotes before proceeding.** This check must pass before check 8 even matters, since it's the source of most encoding failures.
+8. **Scan the exact bytes of the '"code"' string value you are about to emit: is there any literal newline, tab, unescaped '"', or unescaped '\\' between its opening and closing quotes? If yes, fix it before emitting — this is the single most common reason generation is rejected.**
+9. Is the output a single valid JSON object with exactly one key, '"code"', properly escaped, parseable by 'JSON.parse' with no extra text before or after?
+10. If the generated file uses curly braces (CSS, TS/TSX object literals, blocks), count opening '{' and closing '}' — they must be exactly equal. A trailing or stray extra '}' with no matching '{' is a common error; scan the last few lines of the code specifically for this before emitting.
+11. Is the file complete — does it actually end where the implementation ends, with no sign of being cut off mid-statement, mid-attribute, or mid-JSX element?
 
 If any check fails, silently correct it before returning. Never return output that fails your own self-check.
 
@@ -144,7 +158,6 @@ If any check fails, silently correct it before returning. Never return output th
   "code": "export { Display } from './Display';\\n"
 }
 `
-
 
 
 export const codeModificationPrompt = `
