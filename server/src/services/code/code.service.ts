@@ -1,14 +1,14 @@
-import type { ProjectStructure, StructureItem, ModifiedFile } from "../../types/project.types.js";
-import type { LLMMessage, LLMResponse } from "../../types/llm.types.js";
+import type { PlanStructure, StructureItem, ModifiedFile } from "../../types/project.types.js";
+import type { LLMMessage } from "../../types/llm.types.js";
 
 import { codeGenerationPrompt, codeModificationPrompt } from "../../prompts/system/code.system.js";
-import { run } from "../llm/ollama.service.js"
+import { run, codeContract } from "../llm/ollama.service.js"
 
 
 import { writeProjectFile, createDirectory, readProjectFile } from "../filesystem.service.js";
 
 export const generateCode = async(
-    plan: ProjectStructure,
+    plan: PlanStructure,
     projectName: string
 ) => {
     for(const item of plan.structure){
@@ -48,7 +48,7 @@ export const generateFile = async(
         }
     ]
 
-    const response = await run(msg)
+    const response = await run(msg, codeContract)
     return response.code;
 }
 
@@ -74,7 +74,7 @@ export const modifyFile = async(
         }
     ]
 
-    const response = await run(msg)
+    const response = await run(msg, codeContract)
 
     return response.code;
 
