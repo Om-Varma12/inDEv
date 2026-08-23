@@ -14,7 +14,9 @@ class KubernetesService{
     }
 
 
-    async createPod(podName: string): Promise<void> {
+    async createPod(
+        podName: string
+    ): Promise<void> {
         // we cannot make .yaml file for this, as the name is being passed from route and its dynamic, 
         // writing in .yaml would keep it hardcoded and static
         const pod: k8s.V1Pod = {
@@ -29,7 +31,7 @@ class KubernetesService{
                 containers: [
                     {
                         name: "workspace",
-                        image: "ubuntu:24.04",
+                        image: "node:20",
                         command: [
                             "/bin/bash",
                             "-c",

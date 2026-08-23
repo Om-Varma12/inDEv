@@ -10,15 +10,15 @@ import { writeProjectFile, createDirectory, readProjectFile } from "../filesyste
 export const generateCode = async(
     plan: PlanStructure,
     podName: string,
-    projectName: string
+    projectPath: string
 ) => {
     for(const item of plan.structure){
         if(item.type == 'file'){
             const code = await generateFile(item);
 
             await writeProjectFile(
-                projectName + '/' + item.path, 
                 podName,
+                projectPath + '/' + item.path, 
                 code
             );
 
@@ -28,16 +28,16 @@ export const generateCode = async(
         else if(item.type == 'folder'){
             await createDirectory(
                 podName, 
-                projectName + '/' + item.path
+                projectPath + '/' + item.path
             );
         }
     } 
 
     for(const item of plan.modifiedFiles){
-        const code = await modifyFile(item, projectName, podName)
+        const code = await modifyFile(item, podName, projectPath)
         await writeProjectFile(
-            projectName + '/' + item.path, 
             podName,
+            projectPath + '/' + item.path, 
             code
         );
     }
@@ -69,8 +69,8 @@ export const generateFile = async(
 
 export const modifyFile = async(
     file: ModifiedFile,
-    projectName: string,
-    podName: string
+    podName: string,
+    projectPath: string
 ) => {
     console.log(`modifying file ${file.path}`)
 
@@ -81,7 +81,7 @@ export const modifyFile = async(
         },
         {
             role: 'system',
-            content: 'These are the initial file content: ' + await readProjectFile(podName, `${projectName}/${file.path}`)
+            content: 'These are the initial file content: ' + await readProjectFile(podName, `${projectPath}/${file.path}`)
         },
         {
             role: 'user',
