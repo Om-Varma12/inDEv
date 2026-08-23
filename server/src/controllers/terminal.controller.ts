@@ -1,18 +1,15 @@
 import WebSocket from "ws";
-
 import { PassThrough } from "node:stream";
 
-import kubernetesService from "../services/kubernetes.service.js";
-
+import sandboxService from "../services/k8s/sandbox.service.js";
 
 export async function handleTerminalConnection(
     ws: WebSocket,
     user: any
-){
+) {
     console.log("WebSocket client connected");
-    console.log("Authenticated user:", user);
+    // console.log("Authenticated user:", user);
 
-    let podName: string | null = null;
     let shellStdin: PassThrough | null = null;
 
     ws.send(
@@ -23,13 +20,14 @@ export async function handleTerminalConnection(
     );
 
     ws.on("message", async (data) => {
-        try{
+        try {
             const message = JSON.parse(data.toString());
 
-            console.log("WebSocket message:", message);
+            // console.log("WebSocket message:", message);
 
-            if(message.type == "input"){
-                if(shellStdin == null){
+            if (message.type === "input") {
+
+                if (shellStdin === null) {
                     ws.send(
                         JSON.stringify({
                             type: "error",
@@ -38,31 +36,62 @@ export async function handleTerminalConnection(
                     );
                     return;
                 }
+
                 shellStdin.write(message.data);
                 return;
             }
 
-            if (message.type == "create"){
-                if (podName !== null){
+            if (message.type === "connect") {
+
+                if (shellStdin !== null) {
                     ws.send(
                         JSON.stringify({
                             type: "error",
-                            message: "Workspace already exists",
+                            message: "Already connected to workspace",
                         })
                     );
                     return;
                 }
 
-                podName = `indev-${Date.now()}`;
+                const projectId = message.projectId;
 
-                shellStdin = await createWorkspacePod(
+                if (!projectId) {
+                    ws.send(
+                        JSON.stringify({
+                            type: "error",
+                            message: "projectId is required",
+                        })
+                    );
+                    return;
+                }
+
+                const sandbox = await sandboxService.getSandbox(
+                    user.id,
+                    projectId
+                );
+
+                if (!sandbox) {
+                    ws.send(
+                        JSON.stringify({
+                            type: "error",
+                            message: "Workspace not found",
+                        })
+                    );
+                    return;
+                }
+
+                shellStdin = await connectToWorkspace(
                     ws,
-                    podName
+                    sandbox.podName
                 );
             }
-        } 
-        catch(error){
-            console.error("WebSocket message error:", error);
+
+        } catch (error) {
+
+            console.error(
+                "WebSocket message error:",
+                error
+            );
 
             ws.send(
                 JSON.stringify({
@@ -73,99 +102,79 @@ export async function handleTerminalConnection(
         }
     });
 
-    ws.on("close", async () => {
+    ws.on("close", () => {
         console.log("WebSocket client disconnected");
 
-        if(podName !== null){
-            try{
-                await kubernetesService.deletePod(podName);
-                console.log(`Workspace ${podName} cleaned up`);
-            } 
-            catch(error){
-                console.error(`Failed to delete Pod ${podName}:`,error);
-            }
-        }
-        
+        // DO NOT delete the pod here.
+        //
+        // The pod belongs to the project,
+        // not to this WebSocket connection.
     });
 
     ws.on("error", (error) => {
-        console.error("WebSocket error:", error);
+        console.error(
+            "WebSocket error:",
+            error
+        );
     });
 }
 
-async function createWorkspacePod(
+
+async function connectToWorkspace(
     ws: WebSocket,
     podName: string
 ): Promise<PassThrough> {
-    try{
+
+    try {
+        console.log("CONNECTING TO POD:", podName);
         ws.send(
             JSON.stringify({
-                type: "creating",
-                message: "Creating workspace...",
+                type: "connecting",
+                message: "Connecting to workspace...",
                 podName,
             })
         );
-
-        console.log(`Creating Pod: ${podName}`);
-
-        await kubernetesService.createPod(
-            podName
-        );
-
-        ws.send(
-            JSON.stringify({
-                type: "creating",
-                message: "Waiting for workspace...",
-                podName,
-            })
-        );
-
-        await kubernetesService.waitForPodRunning(podName);
-
-        console.log(`Pod ${podName} is running`);
-
-        ws.send(
-            JSON.stringify({
-                type: "ready",
-                message: "Workspace is ready",
-                podName,
-            })
-        );
-
 
         const stdin = new PassThrough();
         const stdout = new PassThrough();
         const stderr = new PassThrough();
 
         stdout.on("data", (data: Buffer) => {
-            if(ws.readyState == WebSocket.OPEN){
-                ws.send(data.toString());
-            }
-        })
-        stderr.on("data", (data: Buffer) => {
-            if(ws.readyState == WebSocket.OPEN){
-                ws.send(data.toString());
-            }
-        })
 
-        kubernetesService.connectToShell(
+            if (ws.readyState === WebSocket.OPEN) {
+                ws.send(data.toString());
+            }
+
+        });
+
+        stderr.on("data", (data: Buffer) => {
+
+            if (ws.readyState === WebSocket.OPEN) {
+                ws.send(data.toString());
+            }
+
+        });
+
+        await sandboxService.connectShell(
             podName,
             stdin,
             stdout,
             stderr
-        ).catch((error) => {
-            console.error(`Shell error for ${podName}:`, error);
-        });
+        );
 
         return stdin;
-    } 
-    catch(error){
-        console.error(`Failed to create workspace ${podName}:`, error);
+
+    } catch (error) {
+
+        console.error(
+            `Failed to connect to workspace ${podName}:`,
+            error
+        );
 
         ws.send(
             JSON.stringify({
                 type: "error",
-                message: "Failed to create workspace",
+                message: "Failed to connect to workspace",
             })
         );
 

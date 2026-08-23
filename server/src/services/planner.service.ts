@@ -30,7 +30,7 @@ export const generatePlanStructure= async(
         },
     ]
     const result = await run(msg, planContract)
-    console.log(result)
+    // console.log(result)
 
     return result
 }

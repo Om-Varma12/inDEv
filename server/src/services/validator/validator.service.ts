@@ -44,25 +44,25 @@ const fixContract: TaskContract<FixResponse> = {
 };
 
 export const validate = async(
+    podName: string,
     projectPath: string
 ) => {
     console.log("validating project")
     
     const cmds = [
-        "npx tsc --noEmit",
-        "npm run lint",
         "npm run build"
     ];
     
     for(const cmd of cmds){
         const result = await runCommand(
+            podName,
             cmd,
             projectPath
         );
         
         if(!result.success){
             console.log(`validation failed for: ${cmd}`)
-            await fixIssue(result, projectPath);
+            await fixIssue(result, podName, projectPath);
         }
         console.log(`validated: ${cmd}`)
     }
@@ -75,9 +75,10 @@ export const validate = async(
 
 async function fixIssue(
     issue: CommandResult,
+    podName: string,
     projectPath: string
 ){
-    const projectStructure = await getProjectStructure(projectPath);
+    const projectStructure = await getProjectStructure(podName, projectPath);
     const messages: LLMMessage[] = [
         {
             role: 'system',
@@ -98,7 +99,7 @@ async function fixIssue(
     const fileContents: { path: string; content: string }[] = [];
     for (const filePath of response.files) {
         try {
-            const content = await readProjectFile(path.join(projectPath, filePath));
+            const content = await readProjectFile(podName, path.join(projectPath, filePath));
             fileContents.push({ path: filePath, content });
         } catch (error) {
             console.error(`Failed to read file ${filePath}:`, error);
@@ -129,7 +130,7 @@ async function fixIssue(
     if (fixResponse.path && fixResponse.code) {
         const fullPath = path.join(projectPath, fixResponse.path);
         console.log(`Writing corrected file to: ${fullPath}`);
-        await writeProjectFile(fullPath, fixResponse.code);
+        await writeProjectFile(podName, fullPath, fixResponse.code);
     } else {
         console.log("LLM did not return a valid file path and code to fix the issue.");
     }

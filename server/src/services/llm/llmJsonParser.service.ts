@@ -1,6 +1,6 @@
 import { JSON_PARSER } from "../../prompts/system/jsonParser.system.js"
 import type { LLMMessage } from "../../types/llm.types.js"
-import { run } from "./groq.service.js"
+import { run, codeContract } from "./ollama.service.js"
 
 export const llmParse = async(
     code: string
@@ -19,7 +19,7 @@ export const llmParse = async(
         }
     ]
 
-    const result = await run(msg);
+    const result = await run(msg, codeContract);
     
     return result;
 }

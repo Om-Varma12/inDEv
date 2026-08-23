@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { MainLayout } from './components/layout';
 import { AuthModal } from './components/auth';
+import { apiPost } from './utils/api';
 
 export interface Message {
   id: string;
@@ -11,25 +12,59 @@ export interface Message {
 function App() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [sandboxId, setSandboxId] = useState<string | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
 
-  const handleSendMessage = (messageText: string) => {
+  const handleSendMessage = async (messageText: string) => {
     const userMsg: Message = {
       id: Date.now().toString(),
       role: 'user',
       content: messageText,
     };
-
     setMessages((prev) => [...prev, userMsg]);
+    setIsGenerating(true);
 
-    // Mock agent response
-    setTimeout(() => {
-      const agentMsg: Message = {
+    try {
+      const thinkingMsg: Message = {
         id: (Date.now() + 1).toString(),
         role: 'agent',
-        content: `I've received your request: "${messageText}". I am analyzing the workspace and running some tests...`,
+        content: '⚙ Building your project sandbox. This may take a moment...',
       };
-      setMessages((prev) => [...prev, agentMsg]);
-    }, 1000);
+      setMessages((prev) => [...prev, thinkingMsg]);
+
+      const res = await apiPost('/api/chat', {
+        message: messageText,
+        projectName: messageText.trim().split(/\s+/).slice(0, 3).join('-').toLowerCase().replace(/[^a-z0-9-]/g, '') || 'project',
+      });
+
+      const data = await res.json();
+
+      setSandboxId(data.sandboxId);
+
+      setMessages((prev) => {
+        // Replace the thinking message with the done message
+        const without = prev.filter((m) => m.id !== thinkingMsg.id);
+        return [
+          ...without,
+          {
+            id: (Date.now() + 2).toString(),
+            role: 'agent',
+            content: `✅ Project ready! You can now interact with the terminal on the right.`,
+          },
+        ];
+      });
+    } catch (error: any) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: (Date.now() + 3).toString(),
+          role: 'agent',
+          content: `❌ Error: ${error.message || 'Something went wrong while building the project.'}`,
+        },
+      ]);
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const handlePromptClick = (promptText: string) => {
@@ -42,8 +77,9 @@ function App() {
         isSidebarCollapsed={isSidebarCollapsed}
         onToggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
         messages={messages}
-        onSendMessage={handleSendMessage}
-        onPromptClick={handlePromptClick}
+        onSendMessage={isGenerating ? undefined : handleSendMessage}
+        onPromptClick={isGenerating ? undefined : handlePromptClick}
+        sandboxId={sandboxId}
       />
       <AuthModal />
     </>
