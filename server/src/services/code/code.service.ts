@@ -9,23 +9,37 @@ import { writeProjectFile, createDirectory, readProjectFile } from "../filesyste
 
 export const generateCode = async(
     plan: PlanStructure,
+    podName: string,
     projectName: string
 ) => {
     for(const item of plan.structure){
         if(item.type == 'file'){
             const code = await generateFile(item);
-            await writeProjectFile(projectName + '/' + item.path, code);
+
+            await writeProjectFile(
+                projectName + '/' + item.path, 
+                podName,
+                code
+            );
+
             console.log("sleeping for 10s")
             await new Promise(resolve => setTimeout(resolve, 10000));
         }
         else if(item.type == 'folder'){
-            await createDirectory(projectName + '/' + item.path);
+            await createDirectory(
+                podName, 
+                projectName + '/' + item.path
+            );
         }
     } 
 
     for(const item of plan.modifiedFiles){
-        const code = await modifyFile(item, projectName)
-        await writeProjectFile(projectName + '/' + item.path, code);
+        const code = await modifyFile(item, projectName, podName)
+        await writeProjectFile(
+            projectName + '/' + item.path, 
+            podName,
+            code
+        );
     }
 }
 
@@ -55,7 +69,8 @@ export const generateFile = async(
 
 export const modifyFile = async(
     file: ModifiedFile,
-    projectName: string
+    projectName: string,
+    podName: string
 ) => {
     console.log(`modifying file ${file.path}`)
 
@@ -66,7 +81,7 @@ export const modifyFile = async(
         },
         {
             role: 'system',
-            content: 'These are the initial file content: ' + await readProjectFile(`${projectName}/${file.path}`)
+            content: 'These are the initial file content: ' + await readProjectFile(podName, `${projectName}/${file.path}`)
         },
         {
             role: 'user',

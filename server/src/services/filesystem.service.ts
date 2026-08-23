@@ -1,60 +1,70 @@
-import { 
-    mkdir,
-    readFile,
-    writeFile,
-} from "node:fs/promises"
 import fs from "node:fs/promises";
-import { dirname } from "node:path"
 import path from "node:path"
-import { exec } from "node:child_process";
-import { promisify } from "node:util";
+
 import type { ProjectStructure } from "../types/project.types.js";
 
+import SandboxService from "./k8s/sandbox.service.js";
+import kubernetesService from "./k8s/kubernetes.service.js";
 
 
 
-const execAsync = promisify(exec);
-
-export const initReactProject = async (path: string) => {
+export const initReactProject = async (
+    podName: string,
+    path: string
+) => {
     console.log("initializing react prj")
-    await execAsync(
-        `npm create vite@latest "${path}" -- --template react-ts`
-    )
-    
-    console.log("installing pkgs")
-    await execAsync("npm i", {
-        cwd: path
-    })
+
+    await kubernetesService.executeCommand(
+        podName,
+        [
+            "npx",
+            "create",
+            "vite@latest",
+            path,
+            "--",
+            "--template",
+            "react-ts"
+        ]
+    );
+
+    await kubernetesService.executeCommand(
+        podName,
+        ["npm", "install"],
+    );
 }
 
 
-export const createDirectory = async(path: string) => {
-    await mkdir(path, { recursive: true})
+export const createDirectory = async(
+    podName: string,
+    directoryPath: string
+) => {
+    await SandboxService.createDirectory(
+        podName,
+        directoryPath
+    );
 }
 
 
 export const writeProjectFile = async(
+    podName: string,
     path: string,
     content: string
 ) => {
-    await mkdir(dirname(path), {
-        recursive: true
-    })
-
-    await writeFile(
+    return await SandboxService.writeFile(
+        podName,
         path,
-        content,
-        "utf-8"
+        content
     )
 }
 
 
 export const readProjectFile = async(
+    podName: string,
     path: string
 ) => {
-    return await readFile(
-        path,
-        "utf-8"
+    return await SandboxService.readFile(
+        podName,
+        path
     )
 }
 

@@ -11,6 +11,7 @@ class SandboxService{
             ["mkdir", "-p", `/workspace/${projectName}`]
         );
     }
+    
 
     async createDirectory(
         podName: string,
@@ -22,13 +23,18 @@ class SandboxService{
         );
     }
 
+
     async writeFile(
         podName: string,
         filePath: string,
         content: string
     ){
-
+        await kubernetesService.executeCommand(
+            podName,
+            ["sh", "-c", `echo "${content}" > ${filePath}`]
+        );
     }
+
 
     async readFile(
         podName: string,
