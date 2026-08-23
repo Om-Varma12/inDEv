@@ -2,7 +2,7 @@ import WebSocket from "ws";
 
 import { PassThrough } from "node:stream";
 
-import kubernetesService from "../services/kubernetes.service.js";
+import kubernetesService from "../services/k8s/kubernetes.service.js";
 
 
 export async function handleTerminalConnection(

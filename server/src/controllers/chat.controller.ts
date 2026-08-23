@@ -8,10 +8,10 @@ export const sendMessage = async (req: Request, res: Response) => {
     const { message, isFirstMsg, projectName} = req.body;
     const projectPath = `../../outputs/${projectName}`;
 
-    const PlanStructure= await generateProjectStructure(message);
+    const PlanStructure= await generatePlanStructure(message);
     await initReactProject(projectPath)
 
-    await generateCode(projectStructure, projectPath);
+    await generateCode(PlanStructure, projectPath);
 
     await validate(projectPath);
 

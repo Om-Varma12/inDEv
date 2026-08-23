@@ -9,15 +9,12 @@ class KubernetesService{
     constructor(){
         this.kubeConfig = new k8s.KubeConfig();
         this.kubeConfig.loadFromDefault();
-        // console.log(this.kubeConfig.getCurrentCluster());
         this.coreApi = this.kubeConfig.makeApiClient(k8s.CoreV1Api);
         this.exec = new k8s.Exec(this.kubeConfig);
-        // console.log("CLUSTER:", this.kubeConfig.getCurrentCluster());
-        // console.log("API CLIENT:", this.coreApi);
     }
 
-    async createPod(podName: string): Promise<void> {
 
+    async createPod(podName: string): Promise<void> {
         // we cannot make .yaml file for this, as the name is being passed from route and its dynamic, 
         // writing in .yaml would keep it hardcoded and static
         const pod: k8s.V1Pod = {
@@ -83,6 +80,8 @@ class KubernetesService{
         });
     }
 
+
+
     async waitForPodRunning(podName: string): Promise<void> {
         while(true){
             const response = await this.coreApi.readNamespacedPod({
@@ -106,6 +105,8 @@ class KubernetesService{
         }
     }
 
+
+
     async deletePod(podName: string): Promise<void> {
         await this.coreApi.deleteNamespacedPod({
             name: podName,
@@ -114,6 +115,8 @@ class KubernetesService{
 
         console.log(`pod ${podName} deleted`);
     }
+
+
 
     async connectToShell(
         podName: string,
@@ -131,6 +134,47 @@ class KubernetesService{
             stdin,
             true,
         );
+    }
+
+
+    async executeCommand(
+        podName: string,
+        command: string[],
+    ): Promise<string> {
+        let output = "";
+
+        const stdout = new Writable({
+            write(chunk, encoding, callback){
+                output += chunk.toString();
+                callback();
+            }
+        });
+
+        const stderr = new Writable({
+            write(chunk, encoding, callback){
+                output += chunk.toString();
+                callback();
+            }
+        });
+
+        const stdin = new Readable({
+            read(){
+                this.push(null);
+            }
+        });
+
+        await this.exec.exec(
+            "loom-workspaces",
+            podName,
+            "workspace",
+            command,
+            stdout,
+            stderr,
+            stdin,
+            false,
+        );
+
+        return output;
     }
 }
 
