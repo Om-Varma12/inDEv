@@ -8,7 +8,7 @@ export async function handleTerminalConnection(
     user: any
 ) {
     console.log("WebSocket client connected");
-    console.log("Authenticated user:", user);
+    // console.log("Authenticated user:", user);
 
     let shellStdin: PassThrough | null = null;
 
@@ -23,7 +23,7 @@ export async function handleTerminalConnection(
         try {
             const message = JSON.parse(data.toString());
 
-            console.log("WebSocket message:", message);
+            // console.log("WebSocket message:", message);
 
             if (message.type === "input") {
 

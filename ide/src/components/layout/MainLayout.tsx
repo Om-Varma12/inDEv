@@ -8,6 +8,7 @@ interface MainLayoutProps {
   messages: Message[];
   onSendMessage?: (message: string) => void;
   onPromptClick?: (prompt: string) => void;
+  sandboxId?: string | null;
   className?: string;
 }
 
@@ -17,6 +18,7 @@ export const MainLayout = ({
   messages,
   onSendMessage,
   onPromptClick,
+  sandboxId,
   className = '',
 }: MainLayoutProps) => {
   return (
@@ -31,6 +33,7 @@ export const MainLayout = ({
         messages={messages}
         onSendMessage={onSendMessage}
         onPromptClick={onPromptClick}
+        sandboxId={sandboxId}
       />
     </div>
   );

@@ -143,40 +143,50 @@ class KubernetesService{
         podName: string,
         command: string[],
     ): Promise<string> {
-        let output = "";
+        return new Promise(async (resolve, reject) => {
+            let output = "";
 
-        const stdout = new Writable({
-            write(chunk, encoding, callback){
-                output += chunk.toString();
-                callback();
+            const stdout = new Writable({
+                write(chunk, encoding, callback){
+                    output += chunk.toString();
+                    callback();
+                }
+            });
+
+            const stderr = new Writable({
+                write(chunk, encoding, callback){
+                    output += chunk.toString();
+                    callback();
+                }
+            });
+
+            const stdin = new Readable({
+                read(){
+                    this.push(null);
+                }
+            });
+
+            try {
+                const ws = await this.exec.exec(
+                    "loom-workspaces",
+                    podName,
+                    "workspace",
+                    command,
+                    stdout,
+                    stderr,
+                    stdin,
+                    false,
+                );
+
+                // exec.exec() resolves when the WS connection opens — NOT when the
+                // command finishes. We must wait for 'close' (process exited) or
+                // 'error' (connection dropped) to know the command is actually done.
+                ws.on("close", () => resolve(output));
+                ws.on("error", (err: Error) => reject(err));
+            } catch (err) {
+                reject(err);
             }
         });
-
-        const stderr = new Writable({
-            write(chunk, encoding, callback){
-                output += chunk.toString();
-                callback();
-            }
-        });
-
-        const stdin = new Readable({
-            read(){
-                this.push(null);
-            }
-        });
-
-        await this.exec.exec(
-            "loom-workspaces",
-            podName,
-            "workspace",
-            command,
-            stdout,
-            stderr,
-            stdin,
-            false,
-        );
-
-        return output;
     }
 }
 

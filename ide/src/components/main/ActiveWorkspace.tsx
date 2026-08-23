@@ -6,12 +6,14 @@ import { TerminalComponent } from './TerminalComponent';
 interface ActiveWorkspaceProps {
   messages: Message[];
   onSendMessage?: (message: string) => void;
+  sandboxId?: string | null;
   className?: string;
 }
 
 export const ActiveWorkspace = ({
   messages,
   onSendMessage,
+  sandboxId,
   className = '',
 }: ActiveWorkspaceProps) => {
   const [inputText, setInputText] = useState('');
@@ -243,7 +245,7 @@ export const ActiveWorkspace = ({
 
           {/* Shell */}
           {activeTab === 'shell' && (
-            <TerminalComponent />
+            <TerminalComponent sandboxId={sandboxId ?? null} />
           )}
 
           {/* Preview */}

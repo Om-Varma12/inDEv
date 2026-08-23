@@ -11,6 +11,7 @@ interface MainContentProps {
   messages: Message[];
   onSendMessage?: (message: string) => void;
   onPromptClick?: (prompt: string) => void;
+  sandboxId?: string | null;
   className?: string;
 }
 
@@ -20,6 +21,7 @@ export const MainContent = ({
   messages,
   onSendMessage,
   onPromptClick,
+  sandboxId,
   className = '',
 }: MainContentProps) => {
   const isInitialState = messages.length === 0;
@@ -49,6 +51,7 @@ export const MainContent = ({
           <ActiveWorkspace
             messages={messages}
             onSendMessage={onSendMessage}
+            sandboxId={sandboxId}
           />
         )}
       </main>

@@ -21,7 +21,10 @@ export const sendMessage = async (req: Request, res: Response) => {
 
     res.json({
         success: true,
-        message: 'done with the project'
+        message: 'done with the project',
+        sandboxId: sandbox.sandboxId,
+        safeProjectName: sandbox.safeProjectName,
+        podName: sandbox.podName
     });
 
     // console.log("GOT")
