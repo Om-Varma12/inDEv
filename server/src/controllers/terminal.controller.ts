@@ -126,7 +126,7 @@ async function connectToWorkspace(
 ): Promise<PassThrough> {
 
     try {
-
+        console.log("CONNECTING TO POD:", podName);
         ws.send(
             JSON.stringify({
                 type: "connecting",

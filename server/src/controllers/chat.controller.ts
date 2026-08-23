@@ -9,7 +9,7 @@ export const sendMessage = async (req: Request, res: Response) => {
     const { message, projectName} = req.body;
     
     const sandbox = await sandboxService.createSandbox(projectName);
-    const projectPath = `/workspace/${sandbox.safeProjectName}`;
+    const projectPath = `/home/node/workspace/${sandbox.safeProjectName}`;
 
     const PlanStructure = await generatePlanStructure(message);
 

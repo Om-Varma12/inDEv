@@ -43,7 +43,7 @@ class SandboxService{
     ){
         await kubernetesService.executeCommand(
             podName,
-            ["mkdir", "-p", `/workspace/${projectName}`]
+            ["mkdir", "-p", `/home/node/workspace/${projectName}`]
         );
     }
     

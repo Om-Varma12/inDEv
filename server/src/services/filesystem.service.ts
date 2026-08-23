@@ -58,6 +58,7 @@ export const writeProjectFile = async(
     path: string,
     content: string
 ) => {
+    console.log(`writing to ${path} podname: ${podName}`)
     return await SandboxService.writeFile(
         podName,
         path,
