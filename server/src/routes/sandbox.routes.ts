@@ -1,13 +1,13 @@
 import { Router } from "express";
-import { sendMessage } from "../controllers/chat.controller.js";
+import { runCode } from "../controllers/sandbox.controller.js";
 import { authenticate } from "../middleware/auth.middleware.js";
 
 const router = Router();
 
 router.post(
-    "/",
+    "/run",
     authenticate,
-    sendMessage
+    runCode
 );
 
 export default router;

@@ -2,6 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { IconButton } from '../ui';
 import type { Message } from '../../App';
 import { TerminalComponent } from './TerminalComponent';
+import { apiPost } from '../../utils/api';
 
 interface ActiveWorkspaceProps {
   messages: Message[];
@@ -18,6 +19,8 @@ export const ActiveWorkspace = ({
 }: ActiveWorkspaceProps) => {
   const [inputText, setInputText] = useState('');
   const [activeTab, setActiveTab] = useState<'shell' | 'preview'>('shell');
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [isRunningCode, setIsRunningCode] = useState(false);
   const [splitPercent, setSplitPercent] = useState(50);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -69,6 +72,31 @@ export const ActiveWorkspace = ({
       handleSend();
     }
   };
+
+  const handleRunCode = async () => {
+    if (!sandboxId) return;
+    setIsRunningCode(true);
+    try {
+      const response = await apiPost('/api/sandbox/run', { projectId: sandboxId });
+      const data = await response.json();
+      if (data.success) {
+        setPreviewUrl(data.previewUrl || 'http://localhost:5174');
+        setActiveTab('preview');
+      } else {
+        alert(`Error running code: ${data.message}`);
+      }
+    } catch (err: any) {
+      console.error('Failed to run code:', err);
+      alert(`An error occurred while running the code: ${err.message}`);
+    } finally {
+      setIsRunningCode(false);
+    }
+  };
+
+  const handlePreviewReady = useCallback((url: string) => {
+    setPreviewUrl(url);
+    setActiveTab('preview');
+  }, []);
 
   // ── Resizable divider ───────────────────────────────────────────────────
   const handleDividerMouseDown = (e: React.MouseEvent) => {
@@ -235,8 +263,20 @@ export const ActiveWorkspace = ({
             </button>
           </div>
           <div className="flex items-center gap-xs">
-            <IconButton icon="refresh" size="sm" />
-            <IconButton icon="open_in_new" size="sm" />
+            <button
+              onClick={handleRunCode}
+              disabled={isRunningCode || !sandboxId}
+              className="px-sm h-8 rounded-md bg-primary text-on-primary text-body-xs font-bold hover:bg-primary-dim disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-xs"
+            >
+              {isRunningCode ? (
+                <>
+                  <div className="w-3 h-3 border-2 border-on-primary border-t-transparent rounded-full animate-spin" />
+                  Running...
+                </>
+              ) : (
+                'RUN CODE'
+              )}
+            </button>
           </div>
         </div>
 
@@ -244,9 +284,15 @@ export const ActiveWorkspace = ({
         <div className="flex-1 overflow-hidden">
 
           {/* Shell */}
-          {activeTab === 'shell' && (
-            <TerminalComponent sandboxId={sandboxId ?? null} />
-          )}
+          <div
+            className={`w-full h-full ${activeTab === 'shell' ? 'block' : 'hidden'}`}
+          >
+            <TerminalComponent
+              sandboxId={sandboxId ?? null}
+              onPreviewReady={handlePreviewReady}
+              activeTab={activeTab}
+            />
+          </div>
 
           {/* Preview */}
           {activeTab === 'preview' && (
@@ -258,31 +304,49 @@ export const ActiveWorkspace = ({
                   <IconButton icon="arrow_forward" size="sm" />
                   <IconButton icon="refresh" size="sm" />
                 </div>
-                <div className="flex-1 bg-surface-container rounded px-md py-xs text-on-surface-variant select-all border border-outline-variant overflow-hidden truncate">
-                  http://localhost:5173/
-                </div>
+                <input
+                  className="flex-1 bg-surface-container rounded px-md py-xs text-on-surface-variant select-all border border-outline-variant overflow-hidden truncate outline-none focus:border-primary/50 transition-all"
+                  value={previewUrl || 'http://localhost:5173/'}
+                  onChange={(e) => setPreviewUrl(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.currentTarget.blur();
+                    }
+                  }}
+                />
               </div>
               {/* Viewport */}
               <div className="flex-1 bg-surface-container-lowest flex items-center justify-center p-xl overflow-y-auto">
-                <div className="bg-surface rounded-2xl border border-outline-variant p-lg max-w-sm w-full shadow-lg flex flex-col items-center text-center gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
-                    <svg fill="none" height="28" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" width="28">
-                      <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z" />
-                      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z" />
-                    </svg>
+                {previewUrl ? (
+                  <iframe
+                    src={previewUrl}
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      border: "none",
+                    }}
+                  />
+                ) : (
+                  <div className="bg-surface rounded-2xl border border-outline-variant p-lg max-w-sm w-full shadow-lg flex flex-col items-center text-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
+                      <svg fill="none" height="28" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" width="28">
+                        <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z" />
+                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z" />
+                      </svg>
+                    </div>
+                    <h3 className="font-semibold text-[18px] text-on-surface">Vite + React App</h3>
+                    <p className="text-body-sm text-on-surface-variant">
+                      Development server running. Edit{' '}
+                      <code className="font-code-md text-primary bg-primary/5 px-1 py-0.5 rounded">
+                        src/App.tsx
+                      </code>{' '}
+                      to test HMR.
+                    </p>
+                    <button className="px-lg py-sm bg-primary text-on-primary hover:bg-surface-tint font-medium rounded-full text-body-sm transition-colors shadow-sm cursor-pointer">
+                      Get started
+                    </button>
                   </div>
-                  <h3 className="font-semibold text-[18px] text-on-surface">Vite + React App</h3>
-                  <p className="text-body-sm text-on-surface-variant">
-                    Development server running. Edit{' '}
-                    <code className="font-code-md text-primary bg-primary/5 px-1 py-0.5 rounded">
-                      src/App.tsx
-                    </code>{' '}
-                    to test HMR.
-                  </p>
-                  <button className="px-lg py-sm bg-primary text-on-primary hover:bg-surface-tint font-medium rounded-full text-body-sm transition-colors shadow-sm cursor-pointer">
-                    Get started
-                  </button>
-                </div>
+                )}
               </div>
             </div>
           )}

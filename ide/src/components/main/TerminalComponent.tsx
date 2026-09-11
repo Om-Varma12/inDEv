@@ -5,12 +5,15 @@ import '@xterm/xterm/css/xterm.css';
 
 interface TerminalComponentProps {
   sandboxId: string | null;
+  onPreviewReady?: (url: string) => void;
+  activeTab?: string;
 }
 
-export const TerminalComponent = ({ sandboxId }: TerminalComponentProps) => {
+export const TerminalComponent = ({ sandboxId, onPreviewReady, activeTab }: TerminalComponentProps) => {
   const terminalContainerRef = useRef<HTMLDivElement>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const termRef = useRef<Terminal | null>(null);
+  const fitAddonRef = useRef<FitAddon | null>(null);
 
   // ── Initialise xterm once ───────────────────────────────────────────────
   useEffect(() => {
@@ -34,6 +37,7 @@ export const TerminalComponent = ({ sandboxId }: TerminalComponentProps) => {
     term.open(terminalContainerRef.current);
     fitAddon.fit();
     termRef.current = term;
+    fitAddonRef.current = fitAddon;
 
     term.write('\x1b[33mWaiting for project sandbox to be ready...\x1b[0m\r\n');
 
@@ -46,8 +50,24 @@ export const TerminalComponent = ({ sandboxId }: TerminalComponentProps) => {
       resizeObserver.disconnect();
       term.dispose();
       termRef.current = null;
+      fitAddonRef.current = null;
     };
   }, []);
+
+  // ── Re-fit when tab changes to 'shell' ───────────────────────────────────
+  useEffect(() => {
+    if (activeTab === 'shell' && fitAddonRef.current) {
+      // Use a small timeout to ensure the div is actually displayed (block)
+      // before calculating the fit.
+      setTimeout(() => {
+        try {
+          fitAddonRef.current?.fit();
+        } catch (e) {
+          console.error('Fit failed:', e);
+        }
+      }, 10);
+    }
+  }, [activeTab]);
 
   // ── Connect to WS once sandboxId is available ───────────────────────────
   useEffect(() => {
@@ -112,6 +132,9 @@ export const TerminalComponent = ({ sandboxId }: TerminalComponentProps) => {
                 case 'error':
                   term.write(`\r\x1b[2K\x1b[31m✘ Error: ${parsed.message || 'Unknown error'}\\x1b[0m\r\n`);
                   return;
+                case 'preview_ready':
+                  onPreviewReady?.(parsed.url);
+                  return;
                 default:
                   break;
               }
@@ -152,7 +175,7 @@ export const TerminalComponent = ({ sandboxId }: TerminalComponentProps) => {
   }, [sandboxId]);
 
   return (
-    <div className="w-full h-full bg-[#0e0e0e] p-2 overflow-hidden">
+    <div className="w-full h-full bg-[#0e0e0e] overflow-hidden">
       <div ref={terminalContainerRef} className="w-full h-full overflow-hidden" />
     </div>
   );

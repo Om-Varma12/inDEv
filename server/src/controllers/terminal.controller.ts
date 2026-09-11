@@ -11,6 +11,7 @@ export async function handleTerminalConnection(
     // console.log("Authenticated user:", user);
 
     let shellStdin: PassThrough | null = null;
+    let currentPodName: string | null = null;
 
     ws.send(
         JSON.stringify({
@@ -26,7 +27,6 @@ export async function handleTerminalConnection(
             // console.log("WebSocket message:", message);
 
             if (message.type === "input") {
-
                 if (shellStdin === null) {
                     ws.send(
                         JSON.stringify({
@@ -82,8 +82,10 @@ export async function handleTerminalConnection(
 
                 shellStdin = await connectToWorkspace(
                     ws,
-                    sandbox.podName
+                    sandbox.podName,
+                    sandbox
                 );
+                currentPodName = sandbox.podName;
             }
 
         } catch (error) {
@@ -102,13 +104,12 @@ export async function handleTerminalConnection(
         }
     });
 
-    ws.on("close", () => {
+    ws.on("close", async () => {
         console.log("WebSocket client disconnected");
 
-        // DO NOT delete the pod here.
-        //
-        // The pod belongs to the project,
-        // not to this WebSocket connection.
+        if (currentPodName) {
+            await sandboxService.stopPortForward(currentPodName);
+        }
     });
 
     ws.on("error", (error) => {
@@ -122,7 +123,8 @@ export async function handleTerminalConnection(
 
 async function connectToWorkspace(
     ws: WebSocket,
-    podName: string
+    podName: string,
+    sandbox: any
 ): Promise<PassThrough> {
 
     try {
@@ -140,11 +142,24 @@ async function connectToWorkspace(
         const stderr = new PassThrough();
 
         stdout.on("data", (data: Buffer) => {
+            const output = data.toString();
 
             if (ws.readyState === WebSocket.OPEN) {
-                ws.send(data.toString());
+                ws.send(output);
             }
 
+            // Detect port-forwarding trigger
+            if (output.includes("Local: http://localhost:5173/")) {
+                console.log(`Port-forwarding trigger detected for ${podName}`);
+                sandboxService.portForward(podName, 5174, 5173).then(() => {
+                    if (ws.readyState === WebSocket.OPEN) {
+                        ws.send(JSON.stringify({
+                            type: "preview_ready",
+                            url: "http://localhost:5174"
+                        }));
+                    }
+                }).catch(err => console.error(`Failed to port-forward ${podName}:`, err));
+            }
         });
 
         stderr.on("data", (data: Buffer) => {
@@ -161,6 +176,9 @@ async function connectToWorkspace(
             stdout,
             stderr
         );
+
+        // Auto-CD to project directory
+        stdin.write(`cd /home/node/workspace/${sandbox.safeProjectName}\n`);
 
         return stdin;
 

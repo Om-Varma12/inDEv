@@ -3,6 +3,7 @@ import { createServer } from "node:http";
 import { WebSocketServer } from "ws";
 
 import chatRoutes from "./routes/chat.routes.js";
+import sandboxRoutes from "./routes/sandbox.routes.js";
 import { handleTerminalConnection } from "./controllers/terminal.controller.js";
 import { authenticateWebSocket } from "./middleware/ws-auth.middleware.js";
 
@@ -14,6 +15,7 @@ app.use(express.json());
 
 
 app.use('/api/chat', chatRoutes);
+app.use('/api/sandbox', sandboxRoutes);
 
 
 const wss = new WebSocketServer({
