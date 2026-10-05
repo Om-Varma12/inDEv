@@ -39,6 +39,28 @@ export const initReactProject = async (
             `cd ${projectPath} && npm install`
         ]
     );
+
+    // Vite 5+ blocks requests from unrecognised hostnames by default.
+    // Since the dev server is exposed via *.nip.io through the Ingress,
+    // we must set allowedHosts: 'all' so the browser can actually reach it.
+    console.log("patching vite.config.ts with allowedHosts: all");
+    const viteConfig = `import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+
+export default defineConfig({
+  plugins: [react()],
+  server: {
+    host: '0.0.0.0',
+    port: 5173,
+    allowedHosts: 'all',
+  },
+})
+`;
+    await SandboxService.writeFile(
+        podName,
+        `${projectPath}/vite.config.ts`,
+        viteConfig
+    );
 }
 
 
