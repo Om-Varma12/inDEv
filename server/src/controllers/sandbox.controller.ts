@@ -24,7 +24,7 @@ export const runCode = async (req: Request, res: Response) => {
         // Output is piped to /tmp/run.log for debugging via the terminal.
         await kubernetesService.executeCommandInBackground(
             sandbox.podName,
-            ["/bin/bash", "-c", `cd ${projectPath} && npm run dev -- --host 0.0.0.0 --port 5173`]
+            `cd ${projectPath} && npm run dev -- --host 0.0.0.0 --port 5173`
         );
 
         // Wait up to 30s for Vite to bind port 5173 before declaring success

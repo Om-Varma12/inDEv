@@ -227,7 +227,7 @@ class KubernetesService {
 	}
 
 
-	async executeCommandInBackground(podName: string, command: string[]): Promise<void> {
+	async executeCommandInBackground(podName: string, script: string): Promise<void> {
 		return new Promise(async (resolve, reject) => {
 			const stdout = new Writable({ write: (_, __, cb) => cb() });
 			const stderr = new Writable({ write: (_, __, cb) => cb() });
@@ -236,7 +236,7 @@ class KubernetesService {
 			try {
 				const backgroundCommand = [
 					"/bin/bash", "-c",
-					`nohup ${command.join(" ")} > /tmp/run.log 2>&1 &`,
+					`nohup bash -c ${JSON.stringify(script)} > /tmp/run.log 2>&1 &`,
 				];
 				await this.exec.exec(
 					NAMESPACE, podName, "workspace",
