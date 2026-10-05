@@ -8,7 +8,6 @@ export async function handleTerminalConnection(
     user: any
 ) {
     console.log("WebSocket client connected");
-    // console.log("Authenticated user:", user);
 
     let shellStdin: PassThrough | null = null;
     let currentPodName: string | null = null;
@@ -24,99 +23,50 @@ export async function handleTerminalConnection(
         try {
             const message = JSON.parse(data.toString());
 
-            // console.log("WebSocket message:", message);
-
             if (message.type === "input") {
                 if (shellStdin === null) {
-                    ws.send(
-                        JSON.stringify({
-                            type: "error",
-                            message: "Shell is not ready",
-                        })
-                    );
+                    ws.send(JSON.stringify({ type: "error", message: "Shell is not ready" }));
                     return;
                 }
-
                 shellStdin.write(message.data);
                 return;
             }
 
             if (message.type === "connect") {
-
                 if (shellStdin !== null) {
-                    ws.send(
-                        JSON.stringify({
-                            type: "error",
-                            message: "Already connected to workspace",
-                        })
-                    );
+                    ws.send(JSON.stringify({ type: "error", message: "Already connected to workspace" }));
                     return;
                 }
 
                 const projectId = message.projectId;
-
                 if (!projectId) {
-                    ws.send(
-                        JSON.stringify({
-                            type: "error",
-                            message: "projectId is required",
-                        })
-                    );
+                    ws.send(JSON.stringify({ type: "error", message: "projectId is required" }));
                     return;
                 }
 
-                const sandbox = await sandboxService.getSandbox(
-                    user.id,
-                    projectId
-                );
-
+                const sandbox = await sandboxService.getSandbox(user.id, String(projectId));
                 if (!sandbox) {
-                    ws.send(
-                        JSON.stringify({
-                            type: "error",
-                            message: "Workspace not found",
-                        })
-                    );
+                    ws.send(JSON.stringify({ type: "error", message: "Workspace not found" }));
                     return;
                 }
 
-                shellStdin = await connectToWorkspace(
-                    ws,
-                    sandbox.podName,
-                    sandbox
-                );
+                shellStdin = await connectToWorkspace(ws, sandbox.podName, sandbox);
                 currentPodName = sandbox.podName;
             }
 
         } catch (error) {
-
-            console.error(
-                "WebSocket message error:",
-                error
-            );
-
-            ws.send(
-                JSON.stringify({
-                    type: "error",
-                    message: "Something went wrong",
-                })
-            );
+            console.error("WebSocket message error:", error);
+            ws.send(JSON.stringify({ type: "error", message: "Something went wrong" }));
         }
     });
 
-    ws.on("close", async () => {
+    ws.on("close", () => {
         console.log("WebSocket client disconnected");
-
-        if (currentPodName) {
-            await sandboxService.stopPortForward(currentPodName);
-        }
+        // No port-forward to clean up — ingress handles routing now
     });
 
     ws.on("error", (error) => {
-        console.error(
-            "WebSocket error:",
-            error
-        );
+        console.error("WebSocket error:", error);
     });
 }
 
@@ -129,73 +79,40 @@ async function connectToWorkspace(
 
     try {
         console.log("CONNECTING TO POD:", podName);
-        ws.send(
-            JSON.stringify({
-                type: "connecting",
-                message: "Connecting to workspace...",
-                podName,
-            })
-        );
+        ws.send(JSON.stringify({
+            type: "connecting",
+            message: "Connecting to workspace...",
+            podName,
+        }));
 
-        const stdin = new PassThrough();
+        const stdin  = new PassThrough();
         const stdout = new PassThrough();
         const stderr = new PassThrough();
 
         stdout.on("data", (data: Buffer) => {
-            const output = data.toString();
-
             if (ws.readyState === WebSocket.OPEN) {
-                ws.send(output);
-            }
-
-            // Detect port-forwarding trigger
-            if (output.includes("Local: http://localhost:5173/")) {
-                console.log(`Port-forwarding trigger detected for ${podName}`);
-                sandboxService.portForward(podName, 5174, 5173).then(() => {
-                    if (ws.readyState === WebSocket.OPEN) {
-                        ws.send(JSON.stringify({
-                            type: "preview_ready",
-                            url: "http://localhost:5174"
-                        }));
-                    }
-                }).catch(err => console.error(`Failed to port-forward ${podName}:`, err));
+                ws.send(data.toString());
             }
         });
 
         stderr.on("data", (data: Buffer) => {
-
             if (ws.readyState === WebSocket.OPEN) {
                 ws.send(data.toString());
             }
-
         });
 
-        await sandboxService.connectShell(
-            podName,
-            stdin,
-            stdout,
-            stderr
-        );
+        await sandboxService.connectShell(podName, stdin, stdout, stderr);
 
-        // Auto-CD to project directory
+        // Auto-CD into the project directory when the shell opens
         stdin.write(`cd /home/node/workspace/${sandbox.safeProjectName}\n`);
+
+        ws.send(JSON.stringify({ type: "ready", message: "Workspace shell is ready" }));
 
         return stdin;
 
     } catch (error) {
-
-        console.error(
-            `Failed to connect to workspace ${podName}:`,
-            error
-        );
-
-        ws.send(
-            JSON.stringify({
-                type: "error",
-                message: "Failed to connect to workspace",
-            })
-        );
-
+        console.error(`Failed to connect to workspace ${podName}:`, error);
+        ws.send(JSON.stringify({ type: "error", message: "Failed to connect to workspace" }));
         throw error;
     }
 }

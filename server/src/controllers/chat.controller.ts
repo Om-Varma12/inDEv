@@ -24,8 +24,7 @@ export const sendMessage = async (req: Request, res: Response) => {
         message: 'done with the project',
         sandboxId: sandbox.sandboxId,
         safeProjectName: sandbox.safeProjectName,
-        podName: sandbox.podName
+        podName: sandbox.podName,
+        previewUrl: sandbox.previewUrl,
     });
-
-    // console.log("GOT")
-};
+};
