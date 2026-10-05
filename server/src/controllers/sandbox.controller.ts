@@ -4,14 +4,14 @@ import kubernetesService from "../services/k8s/kubernetes.service.js";
 
 export const runCode = async (req: Request, res: Response) => {
     const { projectId } = req.body;
-    const userId = req.user?.id;
+    const userId = req.user?.id ? String(req.user.id) : undefined;
 
     if (!projectId) {
         return res.status(400).json({ success: false, message: "projectId is required" });
     }
 
     try {
-        const sandbox = await sandboxService.getSandbox(userId, projectId);
+        const sandbox = await sandboxService.getSandbox(userId, String(projectId));
 
         if (!sandbox) {
             return res.status(404).json({ success: false, message: "Sandbox not found" });
@@ -19,33 +19,33 @@ export const runCode = async (req: Request, res: Response) => {
 
         const projectPath = `/home/node/workspace/${sandbox.safeProjectName}`;
 
-        // We run the setup and the server in a single background shell sequence
-        // 1. cd to project dir
-        // 2. install dependencies
-        // 3. run dev server in background (nohup)
-        const fullCommand = `cd ${projectPath} && npm install && nohup npm run dev -- --host 0.0.0.0 > /tmp/run.log 2>&1 </dev/null &`;
+        // Start the Vite dev server inside the pod in background.
+        // It binds to 0.0.0.0:5173 so the nginx Ingress can reach it.
+        // Output is piped to /tmp/run.log for debugging via the terminal.
+        await kubernetesService.executeCommandInBackground(
+            sandbox.podName,
+            ["/bin/bash", "-c", `cd ${projectPath} && npm run dev -- --host 0.0.0.0 --port 5173`]
+        );
 
-        // Execute the sequence in the background
-        await kubernetesService.executeCommandInBackground(sandbox.podName, ["/bin/bash", "-c", fullCommand]);
-
-        // Wait for the port to open before starting port-forwarding
+        // Wait up to 30s for Vite to bind port 5173 before declaring success
         const isPortOpen = await kubernetesService.waitForPortOpen(sandbox.podName, 5173);
 
         if (!isPortOpen) {
             return res.status(504).json({
                 success: false,
-                message: "Server started but port 5173 didn't become available in time. Please check terminal logs."
+                message: "Dev server started but port 5173 didn't open in time. Check /tmp/run.log in the terminal.",
             });
         }
 
-        // Start port-forwarding
-        await kubernetesService.portForward(sandbox.podName, 5174, 5173);
-
+        // The previewUrl was computed at createSandbox time:
+        // http://<podName>.127.0.0.1.nip.io
+        // minikube tunnel + nginx ingress routes it to this pod's Vite server.
         res.json({
             success: true,
-            message: "Deployment sequence completed: Server is running and port-forwarded",
-            previewUrl: "http://localhost:5174"
+            message: "Dev server is running",
+            previewUrl: sandbox.previewUrl,
         });
+
     } catch (error: any) {
         console.error("Error running code:", error);
         res.status(500).json({ success: false, message: error.message || "Internal server error" });
