@@ -36,7 +36,7 @@ export const initReactProject = async (
         [
             "/bin/bash",
             "-c",
-            `cd ${projectPath} && npm install`
+            `cd ${projectPath} && npm install && npm install -D @vitejs/plugin-react && npm install react react-dom`
         ]
     );
 
