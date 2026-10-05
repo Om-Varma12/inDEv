@@ -138,7 +138,14 @@ class KubernetesService {
 				name: podName,
 				namespace: NAMESPACE,
 				annotations: {
-					"nginx.ingress.kubernetes.io/rewrite-target": "/",
+					// Do NOT use rewrite-target here — Vite serves assets at paths like
+					// /@vite/client, /src/main.tsx, /node_modules/.vite/deps/react.js etc.
+					// Rewriting everything to "/" breaks all of them.
+					// Instead, just pass the request path through unchanged.
+					//
+					// Allow long-lived connections for Vite HMR WebSocket
+					"nginx.ingress.kubernetes.io/proxy-read-timeout": "3600",
+					"nginx.ingress.kubernetes.io/proxy-send-timeout": "3600",
 				},
 			},
 			spec: {
